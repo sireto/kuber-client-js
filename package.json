@@ -1,0 +1,35 @@
+{
+  "name": "kuber-client",
+  "version": "0.0.3",
+  "description": "Javascript client library for kuber server",
+  "main": "dist/index.js",
+  "prepublish": "tsc && cp package.json Readme.md ./dist && ",
+  "files": ["dist"],
+  "scripts": {
+    "test": "test",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sireto/kuber-client-js.git"
+  },
+  "keywords": [
+    "kuber",
+    "cardano-serialization-lib",
+    "cardano",
+    "plutus",
+    "payment"
+  ],
+  
+  "author": "Sudip Bhattarai",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sireto/kuber-jsclient/issues"
+  },
+  "homepage": "https://github.com/sireto/kuber-jsclient#readme",
+  "dependencies": {
+    "@emurgo/cardano-serialization-lib-asmjs": "11.1.0",
+    "@types/node": "^18.11.5",
+    "typescript": "^4.8.4"
+  }
+}

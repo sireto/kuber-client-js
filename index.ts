@@ -30,7 +30,17 @@ import type {CIP30Instace} from "./types";
 import {Buffer} from 'buffer'
 import { getRandomValues } from 'crypto';
 
-export async function signAndSubmit(provider: CIP30Instace,_tx : string):Promise<Transaction> {
+export async function signAndSubmit(provider: CIP30Instace,rawTx : string):Promise<Transaction> {
+  return signTx(provider,rawTx).then((signedTx)=>submitTx(provider,signedTx))
+}
+
+export async function submitTx(provider: CIP30Instace, signedTx : Transaction):Promise<Transaction> {
+  const signedTxString = Buffer.from(signedTx.to_bytes()).toString('hex')
+  return provider.submitTx(signedTxString).then(()=>signedTx)
+}
+
+
+export async function signTx(provider: CIP30Instace,_tx : string):Promise<Transaction> {
   let tx:Transaction;
   try {
       const txArray=Uint8Array.from(Buffer.from(_tx, 'hex'))
@@ -107,14 +117,8 @@ export async function signAndSubmit(provider: CIP30Instace,_tx : string):Promise
     } else {
       newWitnessSet.set_vkeys(newWitnesses.vkeys()!)
     }
-    tx  = Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
-    const signedTxString = Buffer.from(tx.to_bytes()).toString('hex')
-    // @ts-ignore
-    console.log({
-      additionWitnessSet: witnesesRaw,
-      finalTx:   signedTxString
-    })
-    return provider.submitTx(signedTxString).then(()=>tx)
+    return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
+   
 }
 
 

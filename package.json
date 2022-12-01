@@ -1,6 +1,6 @@
 {
   "name": "kuber-client",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Javascript client library for kuber server",
   "main": "dist/index.js",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",

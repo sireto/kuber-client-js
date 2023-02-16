@@ -40,4 +40,4 @@ $ npm install kuber-client
     Promise.resolve(donate(5000000)) // or donate("5A")
 ```
 
-**JSON API refreence** : []()
+**JSON API refreence** : [dquadrant/kuber](https://github.com/dQuadrant/kuber/blob/master/docs/json-api-reference.md)

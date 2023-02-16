@@ -256,7 +256,7 @@ export class Kuber{
      * @returns A new rejected Promise.
      */
     submit(tx: Transaction): Promise<TxResponseModal> {
-      return this.call("POST", "/api/v1/tx", tx.to_bytes(), {
+      return this.call("POST", "api/v1/tx/submit", tx.to_bytes(), {
         "content-type": "application/cbor",
       }).then(
         res =>res.text()
@@ -264,11 +264,23 @@ export class Kuber{
         return Kuber.parseJson(str).tx
       })
     }
-
+    /**
+     * Build a transaction with kuber.
+     * The built transaction will already have exact min-fee, exact execution-units and extra change output if necessary.
+     * The transaction will be ready to be signed and submitted. 
+     * **Note** It important to remember that the transaction returned by kuber api
+     *  and the transaction returned by kuber-client might be different due to reason mentioned here
+     * <a href="https://github.com/Emurgo/cardano-serialization-lib/issues/429">cardano-serialization-lib/issues</a>
+     * @param cip30Instance Browser cip30 provider instance obtained with enable()
+     * @param buildRequest  Object following Kuber's transaction builder JSON spec
+     * @param autoAddCollateral Add collateral from provider. Kuber automatically picks collateral.
+     *  set this to true if you want to specify exact collateral utxo.
+     * @returns A new rejected Promise.
+     */
     async build(buildRequest: Record<string, any>): Promise<Transaction> {
       return this.call(
         "POST",
-        "/api/v1/tx",
+        "api/v1/tx",
         JSON.stringify(buildRequest),
         { "content-type": "application/json" }
       ).then(
@@ -317,7 +329,7 @@ export class Kuber{
     }
 
     async getScriptPolicy(policy: Record<string, any>): Promise<string> {
-      return this.call("POST", "/api/v1/scriptPolicy", JSON.stringify(policy), {
+      return this.call("POST", "api/v1/scriptPolicy", JSON.stringify(policy), {
         "content-type": "application/json",
       }).then(res=>{
         return res.text()
@@ -325,7 +337,7 @@ export class Kuber{
     }
 
     async calculateMinFee(tx:Transaction):Promise<BigInt>{
-    return this.call("POST", "/api/v1/tx/fee", tx.to_bytes(), {
+    return this.call("POST", "api/v1/tx/fee", tx.to_bytes(), {
         "content-type": "application/json",
       }).then(res=>{
         return res.text().then(txt=>{

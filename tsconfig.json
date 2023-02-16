@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "lib": ["ES2022", "dom"],
+    "lib": ["ES6", "dom"],
     "declaration": true,
     "outDir": "dist",
     "strict": true,
@@ -11,6 +11,8 @@
   },
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "scripts/",
+    "*.js"
   ]
 }

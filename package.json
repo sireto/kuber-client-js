@@ -1,13 +1,19 @@
 {
   "name": "kuber-client",
-  "version": "0.0.4",
+  "version": "1.2.0",
   "description": "Javascript client library for kuber server",
   "main": "dist/index.js",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
+  "private": true,
   "scripts": {
-    "test": "test",
-    "build": "tsc"
+    "tsc": "tsc",
+    "compile": "tsc compile",
+    "build": "node ./scripts/build.js",
+    "test": "ts-node index.ts",
+    "publish": "npm run build && cd ./dist && npm publish"
   },
   "repository": {
     "type": "git",
@@ -18,9 +24,9 @@
     "cardano-serialization-lib",
     "cardano",
     "plutus",
-    "payment"
+    "payment",
+    "development"
   ],
-  
   "author": "Sudip Bhattarai",
   "license": "ISC",
   "bugs": {
@@ -28,8 +34,15 @@
   },
   "homepage": "https://github.com/sireto/kuber-jsclient#readme",
   "dependencies": {
-    "@emurgo/cardano-serialization-lib-asmjs": "11.1.0",
+    "@emurgo/cardano-serialization-lib-asmjs": "^11.3.0"
+  },
+  "devDependencies": {
+    "@emurgo/cardano-serialization-lib-nodejs": "^11.3.0",
     "@types/node": "^18.11.5",
+    "chai": "^4.3.7",
+    "esbuild": "^0.17.8",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
     "typescript": "^4.8.4"
   }
 }

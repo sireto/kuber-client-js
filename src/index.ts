@@ -1,4 +1,5 @@
 import {
+  Address,
   AssetName,
   Assets,
   hash_auxiliary_data,
@@ -11,9 +12,13 @@ import {
   Value,
   Vkeywitnesses,
   BigNum,  
+  
 } from '@emurgo/cardano-serialization-lib-asmjs';
 import {Buffer} from 'buffer'
-import { AssetMap, CIP30Instace, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8 } from './types';
+import { AssetMap, CIP30Instance, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8, HexString, VkeyWitnessCcdl, Network } from './types';
+//@ts-ignor
+import Encoder  from './cbor/encoder'
+import Decoder  from './cbor/decoder'
 
 function decodeAssetName(asset:string): string {
     try {
@@ -64,7 +69,7 @@ export class WalletBalance {
         list.forEach(v => v.utf8Name=decodeAssetName(v.tokenName))
         return list
     }
-    static async fromProvider(provider:CIP30Instace): Promise<WalletBalance>{
+    static async fromProvider(provider:CIP30Instance): Promise<WalletBalance>{
         const utxos : TransactionUnspentOutput[] = (await provider.getUtxos()).map(u =>
             TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")),
         );
@@ -120,59 +125,147 @@ declare global {
     }
 }
 
-function txOrStringToString(txOrStr : string|Transaction): string{
+function txOrStringToString(txOrStr : HexString|Transaction): string{
   return typeof txOrStr === "string" ? txOrStr :(txOrStr as Transaction).to_hex()
 }
-function txOrStringToTx(txOrStr : string|Transaction):Transaction{
+function txOrStringToTx(txOrStr : HexString|Transaction):Transaction{
   return typeof txOrStr === "string" ? Transaction.from_hex(txOrStr) : txOrStr 
 }
 
-export async function signAndSubmit(provider: CIP30Instace,txOrString : Transaction | string):Promise<Transaction> {
-  const signedTx= await signTx(provider,txOrString)
-  await submitTx(provider,signedTx)
-  return signedTx
+export async function signAndSubmit(provider: CIP30Instance,txOrString : Transaction | HexString):Promise<Transaction> {
+  const txStr= txOrStringToString(txOrString)
+  const signature= await provider.signTx(txStr)
+  const finalTx = mergeFunction(txOrStringToTx(txOrString),signature)
+  const finalTxHex = finalTx.to_hex()
+  console.info('signAndSubmit',{
+    unSignedTx: txStr,
+    witnessSet:signature,
+    finalTx: finalTxHex
+  })
+  await provider.submitTx(finalTxHex)
+  return finalTx
 }
 
-export async function submitTx(provider: CIP30Instace, txOrStr : Transaction|string):Promise<unknown> {
+export async function submitTx(provider: CIP30Instance, txOrStr : Transaction|HexString):Promise<unknown> {
   return provider.submitTx(txOrStringToString(txOrStr))
 }
 
-export async function signTx(provider: CIP30Instace,txOrStr : string | Transaction):Promise<Transaction> {
+
+// vkeywitness = [ $vkey, $signature ]
+//
+// transaction_witness_set =
+//   { ? 0: [* vkeywitness ]
+//   , ? 1: [* native_script ]
+//   , ? 2: [* bootstrap_witness ]
+//   , ? 3: [* plutus_v1_script ]
+//   , ? 4: [* plutus_data ]
+//   , ? 5: [* redeemer ]
+//   , ? 6: [* plutus_v2_script ] ; New
+//   }
+// 
+// transaction =
+//   [ transaction_body
+//   , transaction_witness_set
+//   , bool
+//   , auxiliary_data / null
+//   ]
+
+export function mergeTxAndWitnessHexWithCborlib(_tx:Transaction|string,witnessesRaw: HexString):string{
+  function updateSource(source:VkeyWitnessCcdl[],target : VkeyWitnessCcdl[]){
+    const existing = new Set(source.map(x => x[0])) 
+    target.forEach(vkeyWitness=>{
+      if(!existing.has(vkeyWitness[0])){
+        source.push(vkeyWitness)
+      }
+    })
+  }
+  const newWitnessSet = Decoder.decodeFirstSync(Buffer.from(witnessesRaw,'hex'))
+  const txHex = txOrStringToString(_tx)
+  const tx = Decoder.decodeFirstSync(Buffer.from(txHex,'hex'))
+  console.log(tx)
+  const oldWitnessSet:Map<number,any>=tx[1]
+  const newVkeys:any=newWitnessSet.get(0)
+  if(newVkeys){
+    if(oldWitnessSet){
+      const oldVkeys=oldWitnessSet.get(1)
+      if(oldVkeys){
+        updateSource(oldVkeys,newVkeys)
+      }else{
+        // try to insert the vkeyList at the beginning
+        // without reordering other keys
+        const mp = new Map()
+        mp.set(0,newVkeys)
+        Array.from(oldWitnessSet.keys()).forEach(key=>{
+          mp.set(key,oldWitnessSet.get(key))
+        }) 
+        tx[1] = mp
+      }
+    }else{
+      tx[1]=newWitnessSet
+    }
+    
+  }else{
+    console.warn("mergeTxAndWitness","New Witness set is empty",newWitnessSet)
+    return txHex
+  }
+  console.log(tx)
+  return Encoder.encode(tx).toString('hex')
+}
+export function mergeTxAndWitnessHexWithSerializationLib(_tx:Transaction,witnessesRaw: HexString):Transaction{
+  const walletWitnesses = TransactionWitnessSet.from_hex(witnessesRaw)
+  return mergeTxAndWitness(_tx,walletWitnesses)
+}
+
+const mergeFunction =mergeTxAndWitnessHexWithSerializationLib
+
+
+export function mergeTxAndWitness(tx:Transaction,walletWitnesses: TransactionWitnessSet):Transaction{
+  function addVkeyWitnesses(target:Vkeywitnesses, source: Vkeywitnesses ){
+    for (let i=0;i<source.len();i++) {
+      target.add(walletWitnesses.vkeys()!.get(i))
+    }
+    return target
+  }
+  const newWitnessSet = TransactionWitnessSet.new();
+  if (tx.witness_set().bootstraps()){
+    newWitnessSet.set_bootstraps(tx.witness_set().bootstraps()!);
+  }
+  if (tx.witness_set().plutus_data())
+    newWitnessSet.set_plutus_data(tx.witness_set().plutus_data()!);
+  if (tx.witness_set().plutus_scripts())
+    newWitnessSet.set_plutus_scripts(tx.witness_set().plutus_scripts()!)
+  if (tx.witness_set().redeemers())
+    newWitnessSet.set_redeemers(tx.witness_set().redeemers()!)
+  if (tx.witness_set().native_scripts())
+    newWitnessSet.set_native_scripts(tx.witness_set().native_scripts()!)
+  
+    // add the new witness.
+  if (tx.witness_set().vkeys() && newWitnessSet.vkeys()) {
+    const newVkeySet=Vkeywitnesses.new()
+
+    for (let i=0;i<tx.witness_set().vkeys()!.len();i++) {
+      newVkeySet.add(tx.witness_set().vkeys()!.get(i))
+    }
+    for (let i=0;i<walletWitnesses.vkeys()!.len();i++) {
+      newVkeySet.add(walletWitnesses.vkeys()!.get(i))
+    }
+    newWitnessSet.set_vkeys(newVkeySet)
+
+  } else if(walletWitnesses.vkeys()) {
+    newWitnessSet.set_vkeys(addVkeyWitnesses(Vkeywitnesses.new(),walletWitnesses.vkeys()!))
+  }
+  return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
+}
+
+export async function signTx(provider: CIP30Instance,txOrStr : HexString | Transaction):Promise<Transaction> {
+  
   let tx = txOrStringToTx(txOrStr)
   const witnesesRaw = await provider.signTx(
       tx.to_hex(),
       true
   )
-    const walletWitnesses = TransactionWitnessSet.from_bytes(Buffer.from(witnesesRaw, "hex"))
-    const newWitnessSet = TransactionWitnessSet.new();
-    if (tx.witness_set().bootstraps()){
-      newWitnessSet.set_bootstraps(tx.witness_set().bootstraps()!);
-    }
-    if (tx.witness_set().plutus_data())
-      newWitnessSet.set_plutus_data(tx.witness_set().plutus_data()!);
-    if (tx.witness_set().plutus_scripts())
-      newWitnessSet.set_plutus_scripts(tx.witness_set().plutus_scripts()!)
-    if (tx.witness_set().redeemers())
-      newWitnessSet.set_redeemers(tx.witness_set().redeemers()!)
-    if (tx.witness_set().native_scripts())
-      newWitnessSet.set_native_scripts(tx.witness_set().native_scripts()!)
-    
-      // add the new witness.
-    if (tx.witness_set().vkeys() && newWitnessSet.vkeys()) {
-      const newVkeySet=Vkeywitnesses.new()
-
-      for (let i=0;i<tx.witness_set().vkeys()!.len();i++) {
-        newVkeySet.add(tx.witness_set().vkeys()!.get(i))
-      }
-      for (let i=0;i<walletWitnesses.vkeys()!.len();i++) {
-        newVkeySet.add(walletWitnesses.vkeys()!.get(i))
-      }
-      newWitnessSet.set_vkeys(newVkeySet)
-
-    } else if(walletWitnesses.vkeys()) {
-      newWitnessSet.set_vkeys(walletWitnesses.vkeys()!)
-    }
-    return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
+  return mergeFunction(tx,witnesesRaw)
+ 
 }
 
 export  function parseCardanoTransaction(_tx: string) : Transaction{
@@ -221,26 +314,10 @@ export  function parseCardanoTransaction(_tx: string) : Transaction{
     return Transaction.new(tx.body(), tx.witness_set(), tx.auxiliary_data());
 }
 
-export function listProviders() :Array<CIP30Provider> {
-  const pluginMap = new Map()
-  if(!window.cardano){
-    return []
-  }
-  Object.keys(window.cardano).forEach( x =>{
-    const plugin:CIP30Provider=window.cardano[x]
-    //@ts-ignore
-    if (plugin.enable && plugin.name) {
-      pluginMap.set(plugin.name, plugin)
-    }
-  })
-  const providers=Array.from(pluginMap.values())
-  console.log("Provides",providers)
-  // yoroi doesn't work (remove this after yoroi works)
-  return providers.filter(x => x.name !="yoroi")
-}
 
 
-export class Kuber{
+
+export  class Kuber{
     providerUrl: string;
     constructor(provierUrl: string){
       if(provierUrl.endsWith('/')){
@@ -256,7 +333,7 @@ export class Kuber{
      * @returns A new rejected Promise.
      */
     submit(tx: Transaction): Promise<TxResponseModal> {
-      return this.call("POST", "api/v1/tx/submit", tx.to_bytes(), {
+      return this.call("POST", "api/v1/tx/submit", Buffer.from(tx.to_bytes()), {
         "content-type": "application/cbor",
       }).then(
         res =>res.text()
@@ -297,8 +374,9 @@ export class Kuber{
      *  set this to true if you want to specify exact collateral utxo.
      * @returns A new rejected Promise.
      */
-    async buildWithProvider(cip30Instance:CIP30Instace,buildRequest: Record<string, any>,autoAddCollateral=false): Promise<Transaction>{
-        const walletUtxos = await cip30Instance.getUtxos()
+    async buildWithProvider(cip30Instance:CIP30Instance|CIP30Wallet,buildRequest: Record<string, any>,autoAddCollateral=false): Promise<Transaction>{
+        const instance = (cip30Instance as CIP30Wallet).instance || cip30Instance
+        const walletUtxos = await instance.getUtxos()
         function concat(source:any,target:string[]){
             if(source ){
                 if(Array.isArray(source)){
@@ -317,12 +395,13 @@ export class Kuber{
             buildRequest.selections=concat(buildRequest.selections,walletUtxos)
         }
 
-        if(!buildRequest.inputs() && !buildRequest.selections){
+        if(!buildRequest.inputs && !buildRequest.selections){
             throw Error("Expectation Failed : No Utxos available as `input` or `selection`")
         }
-        if(autoAddCollateral){
+        //@ts-ignore
+        if(autoAddCollateral && instance.getCollateral){
             if(!buildRequest.collateral && !buildRequest.collaterals){
-                buildRequest.collaterals=await cip30Instance.getCollateral()
+                buildRequest.collaterals=await instance.getCollateral()
             }
         }
         return this.build(buildRequest)
@@ -385,5 +464,135 @@ export class Kuber{
         }catch(e:any){
             throw (`KubærApi response JSON parse failed : ${e.message||e} : ${str}`)
         }
+    }
+}
+
+export class   CIP30Wallet {
+  apiVersion: string ;
+  icon: string;
+  name: string;
+  instance: CIP30Instance
+
+  constructor(provider:CIP30Provider,instance:CIP30Instance){
+    this.apiVersion=provider.apiVersion
+    this.name=provider.apiVersion
+    this.icon=provider.icon
+    this.instance=instance
+  }
+  submitTx(txOrStr: string|Transaction):Promise<unknown>{
+    const txStr = txOrStringToString(txOrStr)
+    console.info('CIP30Wallet.submitTx',{
+      tx: txStr
+    })
+    return this.instance.submitTx(txStr);
+  }
+  signTx (txOrStr: string|Transaction,partial?: Boolean) : Promise<TransactionWitnessSet>{
+    const tx =   txOrStringToString(txOrStr)
+    return this.instance.signTx(tx).then(sig=>{
+      console.info('CIP30Wallet.signTx',{
+        unsignedTx: tx,
+        witnessSet:sig,
+      })
+      return TransactionWitnessSet.from_hex(sig)
+    })
+  }
+  signAndSubmit (txOrStr: string|Transaction,partial?: Boolean) : Promise<Transaction>{
+    const txStr =   txOrStringToString(txOrStr)
+    const tx =   txOrStringToTx(txOrStr)
+
+    return this.instance.signTx(txStr).then(sig=>{
+      const signedTx = mergeFunction(tx,sig)
+      const signedTxHex = signedTx.to_hex()
+      console.info('CIP30Wallet.signAndSubmit',{
+        unSignedTx: txStr,
+        witnessSet:sig,
+        finalTx: signedTxHex
+
+      })
+      return this.instance.submitTx(signedTxHex).then(()=>signedTx)
+    })
+    
+  }
+  changeAddress (): Promise<Address>{
+    return this.instance.getChangeAddress().then(address=>{
+      return Address.from_hex(address)
+    })
+  }
+  networkId ():Promise<Network>{
+    return this.instance.getNetworkId().then(id=>{
+      if(id==0){
+        return Network.Mainnet
+      }else{
+        return Network.Testnet
+      }
+    })
+  }
+  networkIdNumber ():Promise<Network>{
+    return this.instance.getNetworkId()
+  }
+  rewardAddresses ():Promise<Address[]>{
+    return this.instance.getRewardAddresses().then((result) =>{
+      return result.map(r => Address.from_hex(r) )
+     })
+  }
+  unusedAddresses() : Promise<Address[]>{
+    return this.instance.getUnusedAddresses().then((result) =>{
+      return result.map(r => Address.from_hex(r) )
+     })  
+  }
+  usedAddresses() : Promise<Address[]>{
+    return this.instance.getUsedAddresses().then((result) =>{
+      return result.map(r => Address.from_hex(r) )
+     })  
+  }
+  utxos() : Promise<TransactionUnspentOutput[]>{
+    return this.instance.getUtxos().then((result) =>{
+      return result.map(r => TransactionUnspentOutput.from_hex(r) )
+     })  
+  }
+  collaterals() : Promise<TransactionUnspentOutput[]>{
+    return this.instance.getUtxos().then((result) =>{
+      return result.map(r => TransactionUnspentOutput.from_hex(r) )
+     })  
+  }
+  calculateBalance():Promise<WalletBalance>{
+      return WalletBalance.fromProvider(this.instance)
+  }
+  static  listProviders() :CIP30ProviderProxy[] {
+    const pluginMap = new Map()
+    if(!window.cardano){
+      return []
+    }
+    Object.keys(window.cardano).forEach( x =>{
+      const plugin:CIP30Provider=window.cardano[x]
+      //@ts-ignore
+      if (plugin.enable && plugin.name) {
+        pluginMap.set(plugin.name, plugin)
+      }
+    })
+    const providers=Array.from(pluginMap.values())
+    console.info("Provides",providers)
+    // yoroi doesn't work (remove this after yoroi works)
+    return providers.filter(x => x.name !="yoroi").map(p=>new CIP30ProviderProxy(p))
+  }
+}
+
+export class CIP30ProviderProxy{
+    apiVersion: string ;
+    enable():Promise<CIP30Wallet>{
+        return this.__provider.enable().then(instance=>new CIP30Wallet(this.__provider,instance))
+    }
+    icon: string;
+    isEnabled():Promise<Boolean>{
+        return this.__provider.isEnabled()
+    }
+    name: string;
+    __provider: CIP30Provider
+    constructor(provider :CIP30Provider){
+        this.__provider=provider
+        this.apiVersion=provider.apiVersion
+        this.icon=provider.icon
+        this.name=provider.name
+        
     }
 }

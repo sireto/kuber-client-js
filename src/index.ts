@@ -13,7 +13,7 @@ import {
   BigNum,  
 } from '@emurgo/cardano-serialization-lib-asmjs';
 import {Buffer} from 'buffer'
-import { AssetMap, CIP30Instace, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8 } from './types';
+import { AssetMap, CIP30Instace, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8, HexString } from './types';
 
 function decodeAssetName(asset:string): string {
     try {
@@ -120,59 +120,76 @@ declare global {
     }
 }
 
-function txOrStringToString(txOrStr : string|Transaction): string{
+function txOrStringToString(txOrStr : HexString|Transaction): string{
   return typeof txOrStr === "string" ? txOrStr :(txOrStr as Transaction).to_hex()
 }
-function txOrStringToTx(txOrStr : string|Transaction):Transaction{
+function txOrStringToTx(txOrStr : HexString|Transaction):Transaction{
   return typeof txOrStr === "string" ? Transaction.from_hex(txOrStr) : txOrStr 
 }
 
-export async function signAndSubmit(provider: CIP30Instace,txOrString : Transaction | string):Promise<Transaction> {
+export async function signAndSubmit(provider: CIP30Instace,txOrString : Transaction | HexString):Promise<Transaction> {
   const signedTx= await signTx(provider,txOrString)
   await submitTx(provider,signedTx)
   return signedTx
 }
 
-export async function submitTx(provider: CIP30Instace, txOrStr : Transaction|string):Promise<unknown> {
+export async function submitTx(provider: CIP30Instace, txOrStr : Transaction|HexString):Promise<unknown> {
   return provider.submitTx(txOrStringToString(txOrStr))
 }
 
-export async function signTx(provider: CIP30Instace,txOrStr : string | Transaction):Promise<Transaction> {
+export function mergeTxAndWitnessHex(tx:Transaction,witnessesRaw: HexString):Transaction{
+  const walletWitnesses = TransactionWitnessSet.from_hex(witnessesRaw)
+  return mergeTxAndWitness(tx,walletWitnesses)
+}
+
+
+export function mergeTxAndWitness(tx:Transaction,walletWitnesses: TransactionWitnessSet):Transaction{
+  function addVkeyWitnesses(target:Vkeywitnesses, source: Vkeywitnesses ){
+    for (let i=0;i<source.len();i++) {
+      target.add(walletWitnesses.vkeys()!.get(i))
+    }
+    return target
+  }
+  const newWitnessSet = TransactionWitnessSet.new();
+  if (tx.witness_set().bootstraps()){
+    newWitnessSet.set_bootstraps(tx.witness_set().bootstraps()!);
+  }
+  if (tx.witness_set().plutus_data())
+    newWitnessSet.set_plutus_data(tx.witness_set().plutus_data()!);
+  if (tx.witness_set().plutus_scripts())
+    newWitnessSet.set_plutus_scripts(tx.witness_set().plutus_scripts()!)
+  if (tx.witness_set().redeemers())
+    newWitnessSet.set_redeemers(tx.witness_set().redeemers()!)
+  if (tx.witness_set().native_scripts())
+    newWitnessSet.set_native_scripts(tx.witness_set().native_scripts()!)
+  
+    // add the new witness.
+  if (tx.witness_set().vkeys() && newWitnessSet.vkeys()) {
+    const newVkeySet=Vkeywitnesses.new()
+
+    for (let i=0;i<tx.witness_set().vkeys()!.len();i++) {
+      newVkeySet.add(tx.witness_set().vkeys()!.get(i))
+    }
+    for (let i=0;i<walletWitnesses.vkeys()!.len();i++) {
+      newVkeySet.add(walletWitnesses.vkeys()!.get(i))
+    }
+    newWitnessSet.set_vkeys(newVkeySet)
+
+  } else if(walletWitnesses.vkeys()) {
+    newWitnessSet.set_vkeys(addVkeyWitnesses(Vkeywitnesses.new(),walletWitnesses.vkeys()!))
+  }
+  return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
+}
+
+export async function signTx(provider: CIP30Instace,txOrStr : HexString | Transaction):Promise<Transaction> {
+  
   let tx = txOrStringToTx(txOrStr)
   const witnesesRaw = await provider.signTx(
       tx.to_hex(),
       true
   )
-    const walletWitnesses = TransactionWitnessSet.from_bytes(Buffer.from(witnesesRaw, "hex"))
-    const newWitnessSet = TransactionWitnessSet.new();
-    if (tx.witness_set().bootstraps()){
-      newWitnessSet.set_bootstraps(tx.witness_set().bootstraps()!);
-    }
-    if (tx.witness_set().plutus_data())
-      newWitnessSet.set_plutus_data(tx.witness_set().plutus_data()!);
-    if (tx.witness_set().plutus_scripts())
-      newWitnessSet.set_plutus_scripts(tx.witness_set().plutus_scripts()!)
-    if (tx.witness_set().redeemers())
-      newWitnessSet.set_redeemers(tx.witness_set().redeemers()!)
-    if (tx.witness_set().native_scripts())
-      newWitnessSet.set_native_scripts(tx.witness_set().native_scripts()!)
-    
-      // add the new witness.
-    if (tx.witness_set().vkeys() && newWitnessSet.vkeys()) {
-      const newVkeySet=Vkeywitnesses.new()
-
-      for (let i=0;i<tx.witness_set().vkeys()!.len();i++) {
-        newVkeySet.add(tx.witness_set().vkeys()!.get(i))
-      }
-      for (let i=0;i<walletWitnesses.vkeys()!.len();i++) {
-        newVkeySet.add(walletWitnesses.vkeys()!.get(i))
-      }
-      newWitnessSet.set_vkeys(newVkeySet)
-
-    } else if(walletWitnesses.vkeys()) {
-      newWitnessSet.set_vkeys(walletWitnesses.vkeys()!)
-    }
-    return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
+  return mergeTxAndWitnessHex(tx,witnesesRaw)
+ 
 }
 
 export  function parseCardanoTransaction(_tx: string) : Transaction{
@@ -234,7 +251,7 @@ export function listProviders() :Array<CIP30Provider> {
     }
   })
   const providers=Array.from(pluginMap.values())
-  console.log("Provides",providers)
+  console.info("Provides",providers)
   // yoroi doesn't work (remove this after yoroi works)
   return providers.filter(x => x.name !="yoroi")
 }
@@ -256,7 +273,7 @@ export class Kuber{
      * @returns A new rejected Promise.
      */
     submit(tx: Transaction): Promise<TxResponseModal> {
-      return this.call("POST", "api/v1/tx/submit", tx.to_bytes(), {
+      return this.call("POST", "api/v1/tx/submit", Buffer.from(tx.to_bytes()), {
         "content-type": "application/cbor",
       }).then(
         res =>res.text()

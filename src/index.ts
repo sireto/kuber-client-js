@@ -11,14 +11,16 @@ import {
   TransactionWitnessSet,
   Value,
   Vkeywitnesses,
-  BigNum,  
-  
+  BigNum,
+  Vkeywitness
 } from '@emurgo/cardano-serialization-lib-asmjs';
 import {Buffer} from 'buffer'
 import { AssetMap, CIP30Instance, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8, HexString, VkeyWitnessCcdl, Network } from './types';
 //@ts-ignor
 import Encoder  from './cbor/encoder'
 import Decoder  from './cbor/decoder'
+import { log } from 'console';
+import { kuberBuilder, txHex_Kuber } from './kuberBuilder';
 
 function decodeAssetName(asset:string): string {
     try {
@@ -126,25 +128,12 @@ declare global {
 }
 
 function txOrStringToString(txOrStr : HexString|Transaction): string{
-  return typeof txOrStr === "string" ? txOrStr :(txOrStr as Transaction).to_hex()
+  return typeof txOrStr === "string" ? ((Transaction.from_hex(txOrStr)) as Transaction).to_hex() :(txOrStr as Transaction).to_hex()
 }
 function txOrStringToTx(txOrStr : HexString|Transaction):Transaction{
   return typeof txOrStr === "string" ? Transaction.from_hex(txOrStr) : txOrStr 
 }
 
-export async function signAndSubmit(provider: CIP30Instance,txOrString : Transaction | HexString):Promise<Transaction> {
-  const txStr= txOrStringToString(txOrString)
-  const signature= await provider.signTx(txStr)
-  const finalTx = mergeFunction(txOrStringToTx(txOrString),signature)
-  const finalTxHex = finalTx.to_hex()
-  console.info('signAndSubmit',{
-    unSignedTx: txStr,
-    witnessSet:signature,
-    finalTx: finalTxHex
-  })
-  await provider.submitTx(finalTxHex)
-  return finalTx
-}
 
 export async function submitTx(provider: CIP30Instance, txOrStr : Transaction|HexString):Promise<unknown> {
   return provider.submitTx(txOrStringToString(txOrStr))
@@ -169,6 +158,19 @@ export async function submitTx(provider: CIP30Instance, txOrStr : Transaction|He
 //   , bool
 //   , auxiliary_data / null
 //   ]
+export const fromBytes = (bytes: Uint8Array) => Buffer.from(bytes).toString('hex');
+
+export const toBytes = (hex: string): Uint8Array => {
+  if (hex.length % 2 === 0 && /^[0-9A-F]*$/i.test(hex))
+    return Buffer.from(hex, 'hex');
+
+  return Buffer.from(hex, 'utf-8');
+};
+export const deserializeTx = (tx: string) => Transaction
+  .from_bytes(toBytes(tx));
+
+export const deserializeTxWitnessSet = (txWitnessSet: string) => TransactionWitnessSet
+  .from_bytes(toBytes(txWitnessSet));
 
 export function mergeTxAndWitnessHexWithCborlib(_tx:Transaction|string,witnessesRaw: HexString):string{
   function updateSource(source:VkeyWitnessCcdl[],target : VkeyWitnessCcdl[]){
@@ -211,68 +213,54 @@ export function mergeTxAndWitnessHexWithCborlib(_tx:Transaction|string,witnesses
   console.log(tx)
   return Encoder.encode(tx).toString('hex')
 }
-export function mergeTxAndWitnessHexWithSerializationLib(_tx:Transaction,witnessesRaw: HexString):Transaction{
+export function mergeTxAndWitnessHexWithSerializationLib(_tx:Transaction,witnessesRaw: HexString):HexString{
   const walletWitnesses = TransactionWitnessSet.from_hex(witnessesRaw)
+  console.log("witnessRaw:",{
+    wit: walletWitnesses.to_js_value(),
+    tx: _tx.to_js_value(),
+    vKeys: walletWitnesses.vkeys()?.to_js_value()
+  });
   return mergeTxAndWitness(_tx,walletWitnesses)
 }
 
-const mergeFunction =mergeTxAndWitnessHexWithSerializationLib
+export function mergeSignatures( txWitnessSet: TransactionWitnessSet, newSignatures: Vkeywitnesses): Vkeywitnesses 
+{
+  const txSignatures = txWitnessSet.vkeys();
 
+  if (txSignatures !== undefined) {
+    const signatures = new Set<string>();
 
-export function mergeTxAndWitness(tx:Transaction,walletWitnesses: TransactionWitnessSet):Transaction{
-  function addVkeyWitnesses(target:Vkeywitnesses, source: Vkeywitnesses ){
-    for (let i=0;i<source.len();i++) {
-      target.add(walletWitnesses.vkeys()!.get(i))
+    for (let index = 0; index < txSignatures.len(); index += 1) {
+      signatures.add(txSignatures.get(index).to_hex());
     }
-    return target
+
+    for (let index = 0; index < newSignatures.len(); index += 1) {
+      signatures.add(newSignatures.get(index).to_hex());
+    }
+
+    const allSignatures = Vkeywitnesses.new();
+    signatures.forEach((witness) => {
+      allSignatures.add(Vkeywitness.from_hex(witness));
+    });
+
+    return allSignatures;
   }
+  return newSignatures;
+};
+
+export function mergeTxAndWitness(tx:Transaction,walletWitnesses: TransactionWitnessSet):HexString{
   const newWitnessSet = TransactionWitnessSet.new();
-  if (tx.witness_set().bootstraps()){
-    newWitnessSet.set_bootstraps(tx.witness_set().bootstraps()!);
-  }
-  if (tx.witness_set().plutus_data())
-    newWitnessSet.set_plutus_data(tx.witness_set().plutus_data()!);
-  if (tx.witness_set().plutus_scripts())
-    newWitnessSet.set_plutus_scripts(tx.witness_set().plutus_scripts()!)
-  if (tx.witness_set().redeemers())
-    newWitnessSet.set_redeemers(tx.witness_set().redeemers()!)
-  if (tx.witness_set().native_scripts())
-    newWitnessSet.set_native_scripts(tx.witness_set().native_scripts()!)
-  
-    // add the new witness.
-  if (tx.witness_set().vkeys() && newWitnessSet.vkeys()) {
-    const newVkeySet=Vkeywitnesses.new()
-
-    for (let i=0;i<tx.witness_set().vkeys()!.len();i++) {
-      newVkeySet.add(tx.witness_set().vkeys()!.get(i))
-    }
-    for (let i=0;i<walletWitnesses.vkeys()!.len();i++) {
-      newVkeySet.add(walletWitnesses.vkeys()!.get(i))
-    }
-    newWitnessSet.set_vkeys(newVkeySet)
-
-  } else if(walletWitnesses.vkeys()) {
-    newWitnessSet.set_vkeys(addVkeyWitnesses(Vkeywitnesses.new(),walletWitnesses.vkeys()!))
-  }
-  return Transaction.new(tx.body(), newWitnessSet, tx.auxiliary_data());
-}
-
-export async function signTx(provider: CIP30Instance,txOrStr : HexString | Transaction):Promise<Transaction> {
-  
-  let tx = txOrStringToTx(txOrStr)
-  const witnesesRaw = await provider.signTx(
-      tx.to_hex(),
-      true
-  )
-  return mergeFunction(tx,witnesesRaw)
- 
+  const oldTX= TransactionWitnessSet.from_json(tx.witness_set().to_json())
+  oldTX.set_vkeys(mergeSignatures(TransactionWitnessSet.new(),walletWitnesses.vkeys()!))  
+  const transaction = Transaction.new(tx.body(), oldTX).to_hex();  
+  return transaction
 }
 
 export  function parseCardanoTransaction(_tx: string) : Transaction{
   let tx:Transaction;
   try {
-      const txArray=Uint8Array.from(Buffer.from(_tx, 'hex'))
-      tx = Transaction.from_bytes(txArray)
+      // const txArray=Uint8Array.from(Buffer.from(_tx, 'hex'))
+      tx = Transaction.from_hex(_tx)      
       const _txBody = tx.body()
       const txBody = TransactionBody.new_tx_body(_txBody.inputs(),_txBody.outputs(),_txBody.fee())
       if (_txBody.mint()) {
@@ -283,8 +271,10 @@ export  function parseCardanoTransaction(_tx: string) : Transaction{
       }
       if(_txBody.collateral())
       txBody.set_collateral(_txBody.collateral()!)
+
       if(_txBody.mint())
           txBody.set_mint(_txBody.mint()!)
+
       if(_txBody.required_signers()) {
           txBody.set_required_signers(_txBody.required_signers()!)
       }
@@ -293,6 +283,7 @@ export  function parseCardanoTransaction(_tx: string) : Transaction{
       }
       if(_txBody.validity_start_interval_bignum())
         txBody.set_validity_start_interval_bignum(_txBody.validity_start_interval_bignum()!)
+
       if(_txBody.network_id && _txBody.network_id()){
           txBody.set_network_id(_txBody.network_id()!)
       }
@@ -309,9 +300,12 @@ export  function parseCardanoTransaction(_tx: string) : Transaction{
           txBody.set_total_collateral(_txBody.total_collateral()!)
       }
   } catch (e:any) {
+    console.log(e)
     throw new Error("Invalid transaction string :"+ e.message)
   }
-    return Transaction.new(tx.body(), tx.witness_set(), tx.auxiliary_data());
+
+    const transaction= Transaction.new(tx.body(), tx.witness_set(), tx.auxiliary_data())    
+    return transaction;
 }
 
 
@@ -354,18 +348,11 @@ export  class Kuber{
      *  set this to true if you want to specify exact collateral utxo.
      * @returns A new rejected Promise.
      */
-    async build(buildRequest: Record<string, any>): Promise<Transaction> {
-      return this.call(
-        "POST",
-        "api/v1/tx",
-        JSON.stringify(buildRequest),
-        { "content-type": "application/json" }
-      ).then(
-        res =>res.text()
-      ).then(str=>{
-        return parseCardanoTransaction(Kuber.parseJson(str).tx)
-      })
-    }
+    async build(buildRequest:any): Promise<string> {
+        const txFromKuber= await kuberBuilder(buildRequest)
+        const txHexKuber = txHex_Kuber(txFromKuber.tx)
+        return txHexKuber
+      }
     /**
      * Build a transaction with kuber. This function adds the available Utxos in the wallet to selection
      * @param cip30Instance Browser cip30 provider instance obtained with enable()
@@ -374,9 +361,9 @@ export  class Kuber{
      *  set this to true if you want to specify exact collateral utxo.
      * @returns A new rejected Promise.
      */
-    async buildWithProvider(cip30Instance:CIP30Instance|CIP30Wallet,buildRequest: Record<string, any>,autoAddCollateral=false): Promise<Transaction>{
+    async buildWithProvider(cip30Instance:CIP30Instance|CIP30Wallet,buildRequest: Record<string, any>,autoAddCollateral=false): Promise<string>{
         const instance = (cip30Instance as CIP30Wallet).instance || cip30Instance
-        const walletUtxos = await instance.getUtxos()
+        const walletUtxos = await instance.getUtxos()        
         function concat(source:any,target:string[]){
             if(source ){
                 if(Array.isArray(source)){
@@ -391,7 +378,8 @@ export  class Kuber{
         }
         if(buildRequest.selection){
             buildRequest.selection=concat(buildRequest.selection,walletUtxos)
-        }else{
+        }
+        else{
             buildRequest.selections=concat(buildRequest.selections,walletUtxos)
         }
 
@@ -404,7 +392,9 @@ export  class Kuber{
                 buildRequest.collaterals=await instance.getCollateral()
             }
         }
-        return this.build(buildRequest)
+        console.log("provider buildrequest post-concat: "+ JSON.stringify(buildRequest));
+        const builtTransaction= await this.build(buildRequest)
+        return builtTransaction
     }
 
     async getScriptPolicy(policy: Record<string, any>): Promise<string> {
@@ -440,7 +430,8 @@ export  class Kuber{
     }).then(res=>{
         if (res.status===200) {
             return res
-        } else {
+        } 
+        else {
             return res.text().then(txt=>{
                 let json :any
                 try {
@@ -467,7 +458,10 @@ export  class Kuber{
     }
 }
 
-export class   CIP30Wallet {
+export class CIP30Wallet {
+  static usedAddresses() {
+      throw new Error("Method not implemented.");
+  }
   apiVersion: string ;
   icon: string;
   name: string;
@@ -479,40 +473,37 @@ export class   CIP30Wallet {
     this.icon=provider.icon
     this.instance=instance
   }
-  submitTx(txOrStr: string|Transaction):Promise<unknown>{
-    const txStr = txOrStringToString(txOrStr)
+  submitTx(txStr: string):Promise<unknown>{
     console.info('CIP30Wallet.submitTx',{
       tx: txStr
     })
     return this.instance.submitTx(txStr);
   }
-  signTx (txOrStr: string|Transaction,partial?: Boolean) : Promise<TransactionWitnessSet>{
-    const tx =   txOrStringToString(txOrStr)
-    return this.instance.signTx(tx).then(sig=>{
-      console.info('CIP30Wallet.signTx',{
-        unsignedTx: tx,
-        witnessSet:sig,
-      })
-      return TransactionWitnessSet.from_hex(sig)
-    })
-  }
-  signAndSubmit (txOrStr: string|Transaction,partial?: Boolean) : Promise<Transaction>{
-    const txStr =   txOrStringToString(txOrStr)
-    const tx =   txOrStringToTx(txOrStr)
+  async signTx (txOrStr: string,partial?: Boolean) : Promise<string>{
+    try{
+      const tx= deserializeTx(txOrStr)
+      const txWitnessSet= tx.witness_set();
+      const newWitnessSet= await this.instance.signTx(txOrStr, partial);
+      const newSignature= deserializeTxWitnessSet (newWitnessSet)
+                      .vkeys() ?? Vkeywitnesses.new();
+      const txSignatures= mergeSignatures(txWitnessSet, newSignature);
+      txWitnessSet.set_vkeys(txSignatures);
 
-    return this.instance.signTx(txStr).then(sig=>{
-      const signedTx = mergeFunction(tx,sig)
-      const signedTxHex = signedTx.to_hex()
-      console.info('CIP30Wallet.signAndSubmit',{
-        unSignedTx: txStr,
-        witnessSet:sig,
-        finalTx: signedTxHex
+      const signedTx= fromBytes(
+        Transaction.new(
+          tx.body(),
+          txWitnessSet,
+          tx.auxiliary_data()
+        ).to_bytes()
+      )
 
-      })
-      return this.instance.submitTx(signedTxHex).then(()=>signedTx)
-    })
-    
-  }
+      return signedTx
+    }
+    catch (error){
+      throw new Error(`An error occurred during signing: ${error}`)
+    }
+  } 
+  
   changeAddress (): Promise<Address>{
     return this.instance.getChangeAddress().then(address=>{
       return Address.from_hex(address)
@@ -595,4 +586,8 @@ export class CIP30ProviderProxy{
         this.name=provider.name
         
     }
+}
+
+function to_bytes(): Uint8Array {
+  throw new Error('Function not implemented.');
 }

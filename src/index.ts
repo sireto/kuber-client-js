@@ -19,7 +19,6 @@ import { AssetMap, CIP30Instance, CIP30Provider, NativeAsset, NativeAssetUtf8, T
 //@ts-ignor
 import Encoder  from './cbor/encoder'
 import Decoder  from './cbor/decoder'
-import { log } from 'console';
 import { kuberBuilder, txHex_Kuber } from './kuberBuilder';
 
 function decodeAssetName(asset:string): string {

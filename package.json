@@ -1,6 +1,6 @@
 {
   "name": "kuber-client",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Javascript client library for kuber server",
   "main": "src/index.ts",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",
@@ -41,7 +41,7 @@
     "stream-browserify": "^3.0.0"
   },
   "devDependencies": {
-    "@emurgo/cardano-serialization-lib-nodejs": "^11.3.0",
+    "@emurgo/cardano-serialization-lib-nodejs": "12.0.0-alpha.30",
     "@types/jest": "^29.4.0",
     "esbuild": "^0.17.8",
     "jest": "^29.4.3",

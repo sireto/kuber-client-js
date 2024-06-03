@@ -1,5 +1,8 @@
 export type HexString  = string;
-
+export type SignatureResponse = {
+    signature: string,
+    key: string
+}
 export  interface CIP30Provider {
     apiVersion: string ;
     enable : ()=>Promise<CIP30Instance>;
@@ -15,6 +18,7 @@ export enum Network{
 export  interface CIP30Instance {
     submitTx:(tx:string) =>   Promise <any>
     signTx: (tx: string,partial?: Boolean) => Promise<HexString>
+    signData: (address: string, message: HexString) => Promise<SignatureResponse>
     getChangeAddress: ()=> Promise<HexString>
     getNetworkId: ()=>Promise<number>
     getRewardAddresses: ()=>Promise<HexString[]>

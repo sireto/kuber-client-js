@@ -15,7 +15,7 @@ import {
   Vkeywitness
 } from '@emurgo/cardano-serialization-lib-asmjs';
 import {Buffer} from 'buffer'
-import { AssetMap, CIP30Instance, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8, HexString, VkeyWitnessCcdl, Network } from './types';
+import { AssetMap, CIP30Instance, CIP30Provider, NativeAsset, NativeAssetUtf8, TxResponseModal, AssetMapUtf8, HexString, VkeyWitnessCcdl, Network, SignatureResponse } from './types';
 //@ts-ignor
 import Encoder  from './cbor/encoder'
 import Decoder  from './cbor/decoder'
@@ -502,7 +502,11 @@ export class CIP30Wallet {
       throw new Error(`An error occurred during signing: ${error}`)
     }
   } 
-  
+  async signData(address: string, data: string): Promise <string>{
+    return this.instance.signData(address, data).then(response=>{
+      return response.signature
+    })
+  }
   changeAddress (): Promise<Address>{
     return this.instance.getChangeAddress().then(address=>{
       return Address.from_hex(address)

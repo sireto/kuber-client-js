@@ -8,6 +8,7 @@ export  interface CIP30Provider {
     enable : ()=>Promise<CIP30Instance>;
     icon: string;
     isEnabled: ()=> Promise<Boolean>;
+    supportedExtensions?:Record<string,any>[]
     name: string;
 }
 export enum Network{
@@ -80,6 +81,16 @@ export interface TransactionWitnessSetCcdl  {
     4? : any[];
     5? : any[];
     6? : any[];
+
 }
 
+export type Address=any
 
+export type RawMetaDatum =  [RawMetaDatum] | Map<RawMetaDatum,RawMetaDatum> | number | Buffer | string
+export type RawTxMetadata = Map<number,RawMetaDatum>
+export type RawScript = Buffer
+export type RawAuxData = [RawTxMetadata,RawScript[]?] | Map<number,RawTxMetadata|RawScript>
+
+export type RawWitnessSet = Map<number,any>
+export type RawTxBody= Map<number, any>;
+export type RawTx= [RawTxBody,RawWitnessSet,boolean,RawAuxData]

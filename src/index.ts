@@ -516,7 +516,6 @@ export class CIP30Wallet {
     console.info("Provides", providers);
     // yoroi doesn't work (remove this after yoroi works)
     return providers
-      .filter((x) => x.name != "yoroi")
       .map((p) => new CIP30ProviderProxy(p));
   }
 }

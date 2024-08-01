@@ -30,9 +30,8 @@ export  interface CIP30Instance {
 }
 
 export interface TxResponseModal {
-    fee : Number,
-    tx : HexString,
-    txHash: HexString   
+    cborHex : HexString,
+    hash: HexString,
 }
 
 export interface AssetMap{

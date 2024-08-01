@@ -275,7 +275,7 @@ export class Kuber {
    *  set this to true if you want to specify exact collateral utxo.
    * @returns A new rejected Promise.
    */
-  async build(buildRequest: any): Promise<string> {
+  async build(buildRequest: any): Promise<TxResponseModal> {
     const txFromKuber = await this.call('POST','/api/v1/tx',JSON.stringify(buildRequest),{'content-type': 'application/json'});
     return await txFromKuber.json()
   }
@@ -291,7 +291,7 @@ export class Kuber {
     cip30Instance: CIP30Instance | CIP30Wallet,
     buildRequest: Record<string, any>,
     autoAddCollateral = false
-  ): Promise<string> {
+  ): Promise<TxResponseModal> {
     const instance = (cip30Instance as CIP30Wallet).instance || cip30Instance;
     const walletUtxos = await instance.getUtxos();
     function concat(source: any, target: string[]) {

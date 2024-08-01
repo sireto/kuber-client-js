@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Adjust the tag pattern as needed
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
@@ -17,6 +18,19 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+    
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/yarn
+            node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install
 
       - name: Build project
         run: yarn build
@@ -25,3 +39,4 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.CARDANOPI_NPM_TOKEN }}
         run: yarn publish --access public
+        working-directory: ./dist

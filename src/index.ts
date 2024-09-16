@@ -222,16 +222,20 @@ export function mergeSignatures(
   newSignatures: RawWitnessSet
 ): RawWitnessSet {
 
-  const newkeyWitnesses =newSignatures.get(0)!;
-  if(!txWitnessSet){
-    return newSignatures
+  const newKeyWitnesses = newSignatures.get(0) as Set<any>;
+  
+  if (!txWitnessSet) {
+    return newSignatures;
   }
-  const finalWitness= new Map(txWitnessSet)
-  const finalVkeyWitness=finalWitness.get(0)
-  if(finalVkeyWitness ===undefined){
-    finalWitness.set(0,newkeyWitnesses)
-  }else{
-    finalVkeyWitness.push(...newkeyWitnesses)
+  
+  const finalWitness = new Map(txWitnessSet);
+  
+  const finalVkeyWitness = finalWitness.get(0) as Set<any>;
+  
+  if (finalVkeyWitness === undefined) {
+    finalWitness.set(0, newKeyWitnesses);
+  } else {
+    newKeyWitnesses.forEach(item => finalVkeyWitness.add(item));
   }
   return finalWitness;
 }

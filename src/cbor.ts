@@ -1,12 +1,10 @@
 
-import {Decoder, Encoder, addExtension, DecoderStream} from "cbor-x";
-import {Duplex} from "stream";
-import {Buffer} from 'buffer'
+import {Decoder, Encoder, addExtension} from "cbor-x";
+import { Buffer } from "buffer";
 
 type CborBackend={
     encode: (val:any)=>Buffer
     decode: (buff:Buffer)=>any
-    createStreamDecoder:()=>Duplex
 }
 
 
@@ -38,12 +36,8 @@ function cborxBackend() : CborBackend{
     return {
         encode:(x)=> Buffer.from(encoder.encode(x)),
         decode: (x)=>decoder.decode(x),
-        createStreamDecoder: ()=>{
-            return new DecoderStream({mapsAsObjects:false})
-        }
     }
 
 }
-
 const backend=cborxBackend()
 export default  backend

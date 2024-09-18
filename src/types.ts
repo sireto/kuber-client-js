@@ -5,7 +5,7 @@ export type SignatureResponse = {
 }
 export  interface CIP30Provider {
     apiVersion: string ;
-    enable : ()=>Promise<CIP30Instance>;
+    enable : (option?:{extensions:CipExtension[]})=>Promise<CIP30Instance>;
     icon: string;
     isEnabled: ()=> Promise<Boolean>;
     supportedExtensions?:Record<string,any>[]
@@ -27,6 +27,15 @@ export  interface CIP30Instance {
     getUsedAddresses: ()=>Promise<Array<HexString>>
     getUtxos: ()=>Promise<Array<HexString>>
     getCollateral: () => Promise<Array<HexString>>
+    cip95?:Cip95
+}
+export interface Cip95{
+    getPubDRepKey:()=>Promise<HexString>
+    getRegisteredPubStakeKeys:()=>Promise<HexString[]>
+
+    getUnregisteredPubStakeKeys:()=>Promise<HexString[]>
+    signData:(addr:string, sigStructure:string)=>Promise<HexString>
+    signTx:(tx:string, partialSign?:boolean)=>Promise<HexString>
 }
 
 export interface TxResponseModal {
@@ -93,3 +102,8 @@ export type RawAuxData = [RawTxMetadata,RawScript[]?] | Map<number,RawTxMetadata
 export type RawWitnessSet = Map<number,any>
 export type RawTxBody= Map<number, any>;
 export type RawTx= [RawTxBody,RawWitnessSet,boolean,RawAuxData]
+
+
+export interface CipExtension{
+    cip: number;
+}

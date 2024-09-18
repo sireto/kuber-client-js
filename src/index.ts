@@ -13,7 +13,9 @@ import {
   SignatureResponse,
   RawWitnessSet,
   RawTx,
-  Address
+  Address,
+  CipExtension,
+  Cip95
 } from "./types";
 import backend from "./cbor";
 
@@ -77,9 +79,8 @@ export class WalletBalance {
     const maBalance: Record<string, Record<string, bigint>> = {};
     utxos.forEach(utxo=>{
       const value: [bigint, Map<Buffer, Map<Buffer, bigint>>] | bigint = utxo[1][1];
-      let adaValue;
       if (Array.isArray(value)) {
-        adaValue = utxo[0]
+        adaValue = adaValue +  BigInt(utxo[0])
         const map = value[1] as Map<Buffer, Map<Buffer, bigint>>;
         const resultRecord: Record<string, Record<string, bigint>> = {};
   
@@ -103,7 +104,7 @@ export class WalletBalance {
           }  
         }
       } else {
-        adaValue =value as BigInt
+        adaValue = adaValue +  BigInt(utxo[0])
       }
 
     })
@@ -244,12 +245,23 @@ export function mergeSignatures(
 
 export class Kuber {
   providerUrl: string;
-  constructor(provierUrl: string) {
+  apiKey?:string
+  constructor(provierUrl: string,apiKey?:string) {
     if (provierUrl.endsWith("/")) {
       this.providerUrl = provierUrl;
     } else {
       this.providerUrl = provierUrl + "/";
     }
+    this.apiKey=apiKey
+  }
+  private getHeaders(contentType:string='application/json'): HeadersInit{
+    const baseHeader: HeadersInit={
+      "content-type": contentType,
+    }
+    if(this.apiKey){
+      baseHeader['api-key']=this.apiKey
+    }
+    return baseHeader
   }
   /**
    * Submit a transaction with kuber's submit API. Note that kuber's submit api is limted to current era transaction only
@@ -257,10 +269,8 @@ export class Kuber {
    * @param buildRequest  Object following Kuber's transaction builder JSON spec
    * @returns A new rejected Promise.
    */
-  submit(tx: Transaction): Promise<TxResponseModal> {
-    return this.call("POST", "api/v1/tx/submit", Buffer.from(tx.to_bytes()), {
-      "content-type": "application/cbor",
-    })
+  async submit(rawTx: Buffer): Promise<TxResponseModal> {
+    return this.call("POST", "api/v1/tx/submit", rawTx,this.getHeaders('application/cbor'))
       .then((res) => res.text())
       .then((str) => {
         return Kuber.parseJson(str).tx;
@@ -280,7 +290,7 @@ export class Kuber {
    * @returns A new rejected Promise.
    */
   async build(buildRequest: any): Promise<TxResponseModal> {
-    const txFromKuber = await this.call('POST','/api/v1/tx',JSON.stringify(buildRequest),{'content-type': 'application/json'});
+    const txFromKuber = await this.call('POST','/api/v1/tx',JSON.stringify(buildRequest),this.getHeaders());
     return await txFromKuber.json()
   }
   /**
@@ -335,23 +345,19 @@ export class Kuber {
   }
 
   async getScriptPolicy(policy: Record<string, any>): Promise<string> {
-    return this.call("POST", "api/v1/scriptPolicy", JSON.stringify(policy), {
-      "content-type": "application/json",
-    }).then((res) => {
+    return this.call("POST", "api/v1/scriptPolicy", JSON.stringify(policy), this.getHeaders()).then((res) => {
       return res.text();
     });
   }
 
   async calculateMinFee(tx: Transaction): Promise<BigInt> {
-    return this.call("POST", "api/v1/tx/fee", tx.to_bytes(), {
-      "content-type": "application/json",
-    }).then((res) => {
+    return this.call("POST", "api/v1/tx/fee", tx.to_bytes(), this.getHeaders()).then((res) => {
       return res.text().then((txt) => {
         return BigInt(txt);
       });
     });
   }
-  private call(
+  private async call(
     method: string,
     url: string,
     data: BodyInit,
@@ -418,12 +424,13 @@ export class CIP30Wallet {
   icon: string;
   name: string;
   instance: CIP30Instance;
-
+  cip95?:Cip95
   constructor(provider: CIP30Provider, instance: CIP30Instance) {
     this.apiVersion = provider.apiVersion;
     this.name = provider.apiVersion;
     this.icon = provider.icon;
     this.instance = instance;
+    this.cip95=instance.cip95
   }
   submitTx(txStr: string): Promise<unknown> {
     console.info("CIP30Wallet.submitTx", {
@@ -464,7 +471,7 @@ export class CIP30Wallet {
   //     return Address.from_hex(address);
   //   });
   // }
-  networkId(): Promise<Network> {
+  async networkId(): Promise<Network> {
     return this.instance.getNetworkId().then((id) => {
       if (id == 0) {
         return Network.Mainnet;
@@ -473,7 +480,7 @@ export class CIP30Wallet {
       }
     });
   }
-  networkIdNumber(): Promise<Network> {
+  async networkIdNumber(): Promise<Network> {
     return this.instance.getNetworkId();
   }
   // rewardAddresses(): Promise<Address[]> {
@@ -522,15 +529,18 @@ export class CIP30Wallet {
     return providers
       .map((p) => new CIP30ProviderProxy(p));
   }
+  
 }
+
 
 export class CIP30ProviderProxy {
   apiVersion: string;
-  enable(): Promise<CIP30Wallet> {
+  enable(options?:{extensions:CipExtension[]}): Promise<CIP30Wallet> {
     return this.__provider
-      .enable()
+      .enable(options)
       .then((instance) => new CIP30Wallet(this.__provider, instance));
   }
+  
   icon: string;
   isEnabled(): Promise<Boolean> {
     return this.__provider.isEnabled();

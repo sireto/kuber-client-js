@@ -290,7 +290,7 @@ export class Kuber {
    * @returns A new rejected Promise.
    */
   async build(buildRequest: any): Promise<TxResponseModal> {
-    const txFromKuber = await this.call('POST','/api/v1/tx',JSON.stringify(buildRequest),this.getHeaders());
+    const txFromKuber = await this.call('POST','api/v1/tx',JSON.stringify(buildRequest),this.getHeaders());
     return await txFromKuber.json()
   }
   /**

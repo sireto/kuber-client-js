@@ -375,7 +375,7 @@ export class Kuber {
     )
       .catch((e) => {
         console.error(`${this.providerUrl}${method}`, e);
-        throw Error(`Kubær API call : ` + e.message);
+        throw Error(`TxBuild  : ` + e.message);
       })
       .then((res) => {
         if (res.status === 200) {
@@ -387,20 +387,20 @@ export class Kuber {
               json = JSON.parse(txt);
             } catch (e) {
               return Promise.reject(
-                Error(`KubærApi [Status ${res.status}] : ${txt}`)
+                Error(`TxBuild [Status ${res.status}] : ${txt}`)
               );
             }
             if (json) {
               return Promise.reject(
                 Error(
-                  `KubærApi [Status ${res.status}] : ${
+                  `TxBuild  [Status ${res.status}] : ${
                     json.message ? json.message : txt
                   }`
                 )
               );
             } else {
               return Promise.reject(
-                Error(`KubærApi [Status ${res.status}] : ${txt}`)
+                Error(`TxBuild [Status ${res.status}] : ${txt}`)
               );
             }
           });
@@ -411,7 +411,7 @@ export class Kuber {
     try {
       return JSON.parse(str);
     } catch (e: any) {
-      throw `KubærApi response JSON parse failed : ${e.message || e} : ${str}`;
+      throw `TxBuild Api response JSON parse failed : ${e.message || e} : ${str}`;
     }
   }
 }

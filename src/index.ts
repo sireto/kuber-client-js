@@ -15,11 +15,11 @@ import {
   RawTx,
   Address,
   CipExtension,
-  Cip95
+  Cip95,
 } from "./types";
 import backend from "./cbor";
 
-type Transaction = any
+type Transaction = any;
 
 function decodeAssetName(asset: string): string {
   try {
@@ -124,10 +124,14 @@ declare global {
 }
 
 function txOrStringToString(txOrStr: HexString | Transaction): string {
-  return typeof txOrStr === "string" ? txOrStr : backend.encode(txOrStr).toString('hex');
+  return typeof txOrStr === "string"
+    ? txOrStr
+    : backend.encode(txOrStr).toString("hex");
 }
 function txOrStringToTx(txOrStr: HexString | Transaction): Transaction {
-  return typeof txOrStr === "string" ?backend.decode(Buffer.from(txOrStr,'hex')) : txOrStr;
+  return typeof txOrStr === "string"
+    ? backend.decode(Buffer.from(txOrStr, "hex"))
+    : txOrStr;
 }
 
 export async function submitTx(
@@ -164,11 +168,11 @@ export const toBytes = (hex: string): Uint8Array => {
 
   return Buffer.from(hex, "utf-8");
 };
-export const deserializeTx = (tx: string):RawTx =>
-  backend.decode(Buffer.from(tx,'hex'));
+export const deserializeTx = (tx: string): RawTx =>
+  backend.decode(Buffer.from(tx, "hex"));
 
-export const deserializeTxWitnessSet = (txWitnessSet: string):RawWitnessSet =>
-  backend.decode(Buffer.from(txWitnessSet,'hex'));
+export const deserializeTxWitnessSet = (txWitnessSet: string): RawWitnessSet =>
+  backend.decode(Buffer.from(txWitnessSet, "hex"));
 
 export function mergeTxAndWitnessHexWithCborlib(
   _tx: Transaction | string,
@@ -218,51 +222,47 @@ export function mergeTxAndWitnessHexWithCborlib(
   return backend.encode(tx).toString("hex");
 }
 
-
 export function mergeSignatures(
   txWitnessSet: RawWitnessSet,
   newSignatures: RawWitnessSet
 ): RawWitnessSet {
-
   const newKeyWitnesses = newSignatures.get(0) as Set<any>;
-  
+
   if (!txWitnessSet) {
     return newSignatures;
   }
-  
+
   const finalWitness = new Map(txWitnessSet);
-  
+
   const finalVkeyWitness = finalWitness.get(0) as Set<any>;
-  
+
   if (finalVkeyWitness === undefined) {
     finalWitness.set(0, newKeyWitnesses);
   } else {
-    newKeyWitnesses.forEach(item => finalVkeyWitness.add(item));
+    newKeyWitnesses.forEach((item) => finalVkeyWitness.add(item));
   }
   return finalWitness;
 }
 
-
-
 export class Kuber {
   providerUrl: string;
-  apiKey?:string
-  constructor(provierUrl: string,apiKey?:string) {
+  apiKey?: string;
+  constructor(provierUrl: string, apiKey?: string) {
     if (provierUrl.endsWith("/")) {
       this.providerUrl = provierUrl;
     } else {
       this.providerUrl = provierUrl + "/";
     }
-    this.apiKey=apiKey
+    this.apiKey = apiKey;
   }
-  private getHeaders(contentType:string='application/json'): HeadersInit{
-    const baseHeader: HeadersInit={
+  private getHeaders(contentType: string = "application/json"): HeadersInit {
+    const baseHeader: HeadersInit = {
       "content-type": contentType,
+    };
+    if (this.apiKey) {
+      baseHeader["api-key"] = this.apiKey;
     }
-    if(this.apiKey){
-      baseHeader['api-key']=this.apiKey
-    }
-    return baseHeader
+    return baseHeader;
   }
   /**
    * Submit a transaction with kuber's submit API. Note that kuber's submit api is limted to current era transaction only
@@ -271,7 +271,12 @@ export class Kuber {
    * @returns A new rejected Promise.
    */
   async submit(rawTx: Buffer): Promise<TxResponseModal> {
-    return this.call("POST", "api/v1/tx/submit", rawTx,this.getHeaders('application/cbor'))
+    return this.call(
+      "POST",
+      "api/v1/tx/submit",
+      rawTx,
+      this.getHeaders("application/cbor")
+    )
       .then((res) => res.text())
       .then((str) => {
         return Kuber.parseJson(str).tx;
@@ -291,8 +296,13 @@ export class Kuber {
    * @returns A new rejected Promise.
    */
   async build(buildRequest: any): Promise<TxResponseModal> {
-    const txFromKuber = await this.call('POST','api/v1/tx',JSON.stringify(buildRequest),this.getHeaders());
-    return await txFromKuber.json()
+    const txFromKuber = await this.call(
+      "POST",
+      "api/v1/tx",
+      JSON.stringify(buildRequest),
+      this.getHeaders()
+    );
+    return await txFromKuber.json();
   }
   /**
    * Build a transaction with kuber. This function adds the available Utxos in the wallet to selection
@@ -305,10 +315,38 @@ export class Kuber {
   async buildWithProvider(
     cip30Instance: CIP30Instance | CIP30Wallet,
     buildRequest: Record<string, any>,
-    autoAddCollateral = false
+    autoAddCollateral = false,
+    minimumLovelace?: number
   ): Promise<TxResponseModal> {
     const instance = (cip30Instance as CIP30Wallet).instance || cip30Instance;
     const walletUtxos = await instance.getUtxos();
+    let selectedUtxos = walletUtxos;
+    if (minimumLovelace) {
+      let adaValue = BigInt(0);
+      let toBigInt = (x: number | bigint) => {
+        if (typeof x == "number") return BigInt(x);
+        else return x;
+      };
+      const utxos = walletUtxos.map((u) =>
+        backend.decode(Buffer.from(u, "hex"))
+      );
+      let minimumSelections: number = 1;
+      utxos.forEach((utxo) => {
+        const value: [bigint, Map<Buffer, Map<Buffer, bigint>>] | bigint =
+          utxo[1][1];
+        if (Array.isArray(value)) {
+          adaValue += toBigInt(value[0]);
+        } else {
+          adaValue += toBigInt(value);
+        }
+        if (adaValue >= BigInt(minimumLovelace)) {
+          selectedUtxos = walletUtxos.slice(0, minimumSelections);
+          return;
+        } else {
+          minimumSelections++;
+        }
+      });
+    }
     function concat(source: any, target: string[]) {
       if (source) {
         if (Array.isArray(source)) {
@@ -322,9 +360,9 @@ export class Kuber {
       }
     }
     if (buildRequest.selection) {
-      buildRequest.selection = concat(buildRequest.selection, walletUtxos);
+      buildRequest.selection = concat(buildRequest.selection, selectedUtxos);
     } else {
-      buildRequest.selections = concat(buildRequest.selections, walletUtxos);
+      buildRequest.selections = concat(buildRequest.selections, selectedUtxos);
     }
 
     if (!buildRequest.inputs && !buildRequest.selections) {
@@ -339,20 +377,30 @@ export class Kuber {
       }
     }
     console.log(
-      "provider buildrequest post-concat: " + JSON.stringify(buildRequest)
+      "provider buildrequest: " + JSON.stringify(buildRequest)
     );
     const builtTransaction = await this.build(buildRequest);
     return builtTransaction;
   }
 
   async getScriptPolicy(policy: Record<string, any>): Promise<string> {
-    return this.call("POST", "api/v1/scriptPolicy", JSON.stringify(policy), this.getHeaders()).then((res) => {
+    return this.call(
+      "POST",
+      "api/v1/scriptPolicy",
+      JSON.stringify(policy),
+      this.getHeaders()
+    ).then((res) => {
       return res.text();
     });
   }
 
   async calculateMinFee(tx: Transaction): Promise<BigInt> {
-    return this.call("POST", "api/v1/tx/fee", tx.to_bytes(), this.getHeaders()).then((res) => {
+    return this.call(
+      "POST",
+      "api/v1/tx/fee",
+      tx.to_bytes(),
+      this.getHeaders()
+    ).then((res) => {
       return res.text().then((txt) => {
         return BigInt(txt);
       });
@@ -412,7 +460,9 @@ export class Kuber {
     try {
       return JSON.parse(str);
     } catch (e: any) {
-      throw `TxBuild Api response JSON parse failed : ${e.message || e} : ${str}`;
+      throw `TxBuild Api response JSON parse failed : ${
+        e.message || e
+      } : ${str}`;
     }
   }
 }
@@ -425,13 +475,13 @@ export class CIP30Wallet {
   icon: string;
   name: string;
   instance: CIP30Instance;
-  cip95?:Cip95
+  cip95?: Cip95;
   constructor(provider: CIP30Provider, instance: CIP30Instance) {
     this.apiVersion = provider.apiVersion;
     this.name = provider.apiVersion;
     this.icon = provider.icon;
     this.instance = instance;
-    this.cip95=instance.cip95
+    this.cip95 = instance.cip95;
   }
   submitTx(txStr: string): Promise<unknown> {
     console.info("CIP30Wallet.submitTx", {
@@ -442,23 +492,23 @@ export class CIP30Wallet {
   async getSignedTx(txOrStr: string, partial?: Boolean): Promise<string> {
     try {
       const tx = deserializeTx(txOrStr);
-      const txWitnessSet = tx[1]
+      const txWitnessSet = tx[1];
       const newWitnessSet = await this.instance.signTx(txOrStr, partial);
-      const newSignature = deserializeTxWitnessSet(newWitnessSet)
-      
+      const newSignature = deserializeTxWitnessSet(newWitnessSet);
+
       tx[1] = mergeSignatures(txWitnessSet, newSignature);
-      const reEncodedSignedTx= backend.encode(tx)
-      const signedHex=reEncodedSignedTx.toString('hex')
-      console.log(tx)
-      console.log("Cip30Wallet.getSignedTx",{
-        unsignedTx:txOrStr,
+      const reEncodedSignedTx = backend.encode(tx);
+      const signedHex = reEncodedSignedTx.toString("hex");
+      console.log(tx);
+      console.log("Cip30Wallet.getSignedTx", {
+        unsignedTx: txOrStr,
         signature: newWitnessSet,
-        rawSignedTx:  tx,
-        signedTx: signedHex
-      })
-      return signedHex
+        rawSignedTx: tx,
+        signedTx: signedHex,
+      });
+      return signedHex;
     } catch (error) {
-      console.error("Cip30Wallet.getSignedTx",error)
+      console.error("Cip30Wallet.getSignedTx", error);
       throw new Error(`An error occurred during signing: ${error}`);
     }
   }
@@ -527,36 +577,32 @@ export class CIP30Wallet {
     const providers = Array.from(pluginMap.values());
     console.info("Provides", providers);
     // yoroi doesn't work (remove this after yoroi works)
-    return providers
-      .map((p) => new CIP30ProviderProxy(p));
+    return providers.map((p) => new CIP30ProviderProxy(p));
   }
-  
 }
-
 
 export class CIP30ProviderProxy {
   apiVersion: string;
-  enable(options?:{extensions:CipExtension[]}): Promise<CIP30Wallet> {
+  enable(options?: { extensions: CipExtension[] }): Promise<CIP30Wallet> {
     return this.__provider
       .enable(options)
       .then((instance) => new CIP30Wallet(this.__provider, instance));
   }
-  
+
   icon: string;
   isEnabled(): Promise<Boolean> {
     return this.__provider.isEnabled();
   }
   name: string;
   __provider: CIP30Provider;
-  supportedExtensions?: Record<string,any>[]
+  supportedExtensions?: Record<string, any>[];
   constructor(provider: CIP30Provider) {
     this.__provider = provider;
     this.apiVersion = provider.apiVersion;
     this.icon = provider.icon;
     this.name = provider.name;
-    this.supportedExtensions=provider.supportedExtensions
+    this.supportedExtensions = provider.supportedExtensions;
   }
-  
 }
 
 function to_bytes(): Uint8Array {

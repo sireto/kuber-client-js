@@ -84,30 +84,32 @@ export class WalletBalance {
     utxos.forEach((utxo) => {
       const value: [bigint, Map<Buffer, Map<Buffer, bigint>>] | bigint =
         utxo[1][1];
-      if (Array.isArray(value)) {
-        adaValue = adaValue + BigInt(value[0]);
-        const map = value[1] as Map<Buffer, Map<Buffer, bigint>>;
-        for (const [policyBuffer, assetMap] of map.entries()) {
-          // Convert the key Buffer to a hex string
-          const policyHex = policyBuffer.toString("hex");
-          if (maBalance[policyHex] === undefined) {
-            maBalance[policyHex] = {};
-          }
-          const assetToAmount: Record<string, bigint> = maBalance[policyHex];
-          for (const [assetName, quantity] of assetMap.entries()) {
-            // Convert the inner key Buffer to a hex string
-            const assetNameHex = assetName.toString("hex");
-            const existing = assetToAmount[assetNameHex];
-            if (existing) {
-              assetToAmount[assetNameHex] =
-                toBigInt(existing) + toBigInt(quantity);
-            } else {
-              assetToAmount[assetNameHex] = toBigInt(quantity);
+      if (value) {
+        if (Array.isArray(value)) {
+          adaValue = adaValue + BigInt(value[0]);
+          const map = value[1] as Map<Buffer, Map<Buffer, bigint>>;
+          for (const [policyBuffer, assetMap] of map.entries()) {
+            // Convert the key Buffer to a hex string
+            const policyHex = policyBuffer.toString("hex");
+            if (maBalance[policyHex] === undefined) {
+              maBalance[policyHex] = {};
+            }
+            const assetToAmount: Record<string, bigint> = maBalance[policyHex];
+            for (const [assetName, quantity] of assetMap.entries()) {
+              // Convert the inner key Buffer to a hex string
+              const assetNameHex = assetName.toString("hex");
+              const existing = assetToAmount[assetNameHex];
+              if (existing) {
+                assetToAmount[assetNameHex] =
+                  toBigInt(existing) + toBigInt(quantity);
+              } else {
+                assetToAmount[assetNameHex] = toBigInt(quantity);
+              }
             }
           }
+        } else {
+          adaValue = adaValue + BigInt(value);
         }
-      } else {
-        adaValue = adaValue + BigInt(value);
       }
     });
     return new WalletBalance(adaValue, maBalance);
@@ -376,9 +378,7 @@ export class Kuber {
         buildRequest.collaterals = await instance.getCollateral();
       }
     }
-    console.log(
-      "provider buildrequest: " + JSON.stringify(buildRequest)
-    );
+    console.log("provider buildrequest: " + JSON.stringify(buildRequest));
     const builtTransaction = await this.build(buildRequest);
     return builtTransaction;
   }

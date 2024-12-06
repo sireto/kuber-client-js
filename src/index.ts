@@ -336,16 +336,18 @@ export class Kuber {
       utxos.forEach((utxo) => {
         const value: [bigint, Map<Buffer, Map<Buffer, bigint>>] | bigint =
           utxo[1][1];
-        if (Array.isArray(value)) {
-          adaValue += toBigInt(value[0]);
-        } else {
-          adaValue += toBigInt(value);
-        }
-        if (adaValue >= BigInt(minimumLovelace)) {
-          selectedUtxos = walletUtxos.slice(0, minimumSelections);
-          return;
-        } else {
-          minimumSelections++;
+        if (value) {
+          if (Array.isArray(value)) {
+            adaValue += toBigInt(value[0]);
+          } else {
+            adaValue += toBigInt(value);
+          }
+          if (adaValue >= BigInt(minimumLovelace)) {
+            selectedUtxos = walletUtxos.slice(0, minimumSelections);
+            return;
+          } else {
+            minimumSelections++;
+          }
         }
       });
     }

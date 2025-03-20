@@ -346,6 +346,12 @@ export class Kuber {
             selectedUtxos = walletUtxos.slice(0, minimumSelections);
             return;
           }
+        } else {
+          console.log(
+            `WARNING: Missing value for UTxO: ${backend
+              .encode(utxo)
+              .toString("hex")} `
+          );
         }
         minimumSelections++;
       });

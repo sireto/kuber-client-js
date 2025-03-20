@@ -345,10 +345,9 @@ export class Kuber {
           if (adaValue >= BigInt(minimumLovelace)) {
             selectedUtxos = walletUtxos.slice(0, minimumSelections);
             return;
-          } else {
-            minimumSelections++;
           }
         }
+        minimumSelections++;
       });
     }
     function concat(source: any, target: string[]) {

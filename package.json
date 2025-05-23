@@ -35,9 +35,11 @@
   },
   "homepage": "https://github.com/sireto/kuber-jsclient#readme",
   "dependencies": {
-    "axios": "^1.3.6",
+    "axios": "^1.9.0",
     "buffer": "^6.0.3",
-    "cbor-x": "^1.6.0"
+    "cbor-rpc": "^0.0.2",
+    "cbor-x": "^1.6.0",
+    "libcardano": "^1.4.2-4.1"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",

@@ -1,6 +1,6 @@
-const fs = require('fs')
-const process = require("process")
-const child = require("child_process");
+import fs from 'fs'
+import process from 'process';
+import * as child from 'child_process'
 console.log('> tsc')
 const minify=false
 

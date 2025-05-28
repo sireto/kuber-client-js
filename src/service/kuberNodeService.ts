@@ -2,15 +2,16 @@ import axios, { AxiosInstance } from "axios";
 import {
   QueryAPIProvider,
   SubmitAPIProvider,
-} from "libcardano/libcardano-wallet/providers/serviceInterface";
+} from "libcardano-wallet/providers/serviceInterface";
 import {
-  RetryConfig,
-  SubmitTxObject,
-  TxModal,
-  UtxoDetails2,
-} from "libcardano/libcardano-wallet/types";
-import { get, post } from "libcardano/libcardano-wallet/utils/serviceUtils";
+  CommonProtocolParameters,
+  CommonTxObject,
+} from "libcardano-wallet//utils/types";
+import { get, post } from "./utils/http";
 import { cborBackend } from "cbor-rpc";
+import { RetryConfig } from "./utils/type";
+import { UTxO } from "libcardano/cardano/ledger-serialization/txinout";
+import { toUTxO } from "./utils/typeConverters";
 
 export class KuberNodeService implements SubmitAPIProvider, QueryAPIProvider {
   kuberNodeServiceInstance: AxiosInstance;
@@ -25,34 +26,37 @@ export class KuberNodeService implements SubmitAPIProvider, QueryAPIProvider {
     }
   }
 
-  async queryUTxOByAddress(address: string): Promise<UtxoDetails2[]> {
+  async queryUTxOByAddress(address: string): Promise<UTxO[]> {
     const request = `/api/v3/utxo?address=${address}`;
-    return await get(
+    const response = await get(
       this.kuberNodeServiceInstance,
       "KuberNodeService.queryUTxOByAddress",
       request,
       this.retry
     );
+    return toUTxO(response);
   }
 
-  async queryUTxOByTxIn(txIn: string): Promise<UtxoDetails2[]> {
+  async queryUTxOByTxIn(txIn: string): Promise<UTxO[]> {
     const request = `/api/v3/utxo?txin=${encodeURIComponent(txIn)}`;
-    return await get(
+    const response = await get(
       this.kuberNodeServiceInstance,
       "KuberNodeService.queryUTxOByTxIn",
       request,
       this.retry
     );
+    return toUTxO(response);
   }
 
-  async queryProtocolParameters() {
+  async queryProtocolParameters(): Promise<CommonProtocolParameters> {
     const request = `/api/v3/protocol-params`;
-    return await get(
+    const response = await get(
       this.kuberNodeServiceInstance,
       "KuberNodeService.queryProtocolParameters",
       request,
       this.retry
     );
+    return response;
   }
 
   async querySystemStart() {
@@ -97,13 +101,13 @@ export class KuberNodeService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async submitTx(tx: TxModal) {
+  async submitTx(tx: CommonTxObject) {
     const request = `/api/v1/tx/submit`;
     const cborString: string = tx.cborHex;
     const hasWitness =
       Object.keys(cborBackend.decode(Buffer.from(cborString, "hex"))[1])
         .length != 0;
-    const parsedKuberSubmitObject: SubmitTxObject = {
+    const parsedKuberSubmitObject = {
       tx: {
         cborHex: cborString,
         type: hasWitness

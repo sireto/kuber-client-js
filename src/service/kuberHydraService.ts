@@ -2,13 +2,14 @@ import axios, { AxiosInstance } from "axios";
 import {
   QueryAPIProvider,
   SubmitAPIProvider,
-} from "libcardano/libcardano-wallet/providers/serviceInterface";
+} from "libcardano-wallet/providers/serviceInterface";
 import {
-  Commit,
-  RetryConfig,
-  TxModal,
-} from "libcardano/libcardano-wallet/types";
-import { get, post } from "libcardano/libcardano-wallet/utils/serviceUtils";
+  CommonProtocolParameters,
+  CommonTxObject,
+} from "libcardano-wallet/utils/types";
+import { UTxO } from "libcardano/cardano/ledger-serialization/txinout";
+import { Commit, RetryConfig } from "./utils/type";
+import { get, post } from "./utils/http";
 
 export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   kuberHydraServiceInstance: AxiosInstance;
@@ -23,7 +24,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     }
   }
 
-  async queryUTxOByAddress(address: string) {
+  async queryUTxOByAddress(address: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?address=${address}`;
     return await get(
       this.kuberHydraServiceInstance,
@@ -33,7 +34,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async queryUTxOByTxIn(txIn: string) {
+  async queryUTxOByTxIn(txIn: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?txin=${txIn}`;
     return await get(
       this.kuberHydraServiceInstance,
@@ -43,7 +44,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async queryProtocolParameters() {
+  async queryProtocolParameters(): Promise<CommonProtocolParameters> {
     const request = `/hydra/query/protocol-parameters`;
     return await get(
       this.kuberHydraServiceInstance,
@@ -53,7 +54,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async queryHeadState() {
+  async queryHeadState(): Promise<{ state: string }> {
     const request = `/hydra/query/state`;
     return await get(
       this.kuberHydraServiceInstance,
@@ -118,8 +119,11 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async commit(utxos: Commit) {
-    const request = `/hydra/commit`;
+  async commit(
+    utxos: Commit,
+    submit: boolean = false
+  ): Promise<CommonTxObject> {
+    const request = `/hydra/commit?submit=${submit}`;
     return await post(
       this.kuberHydraServiceInstance,
       "KuberHydraService.commit",
@@ -129,8 +133,12 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async decommit(utxos: Commit, wait: boolean = false) {
-    const request = `/hydra/decommit?wait=${wait}`;
+  async decommit(
+    utxos: Commit,
+    wait: boolean = false,
+    submit: boolean = false
+  ) {
+    const request = `/hydra/decommit?wait=${wait}&&submit=${submit}`;
     return await post(
       this.kuberHydraServiceInstance,
       "KuberHydraService.decommit",
@@ -140,8 +148,8 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async buildTx(tx: any) {
-    const request = `/hydra/tx`;
+  async buildTx(tx: any, submit: boolean = false): Promise<CommonTxObject> {
+    const request = `/hydra/tx?submit=${submit}`;
     return await post(
       this.kuberHydraServiceInstance,
       "KuberHydraService.buildTx",
@@ -151,7 +159,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
     );
   }
 
-  async submitTx(txModal: TxModal) {
+  async submitTx(txModal: CommonTxObject): Promise<CommonTxObject> {
     const request = `/hydra/submit`;
     return await post(
       this.kuberHydraServiceInstance,

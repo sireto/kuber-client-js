@@ -224,6 +224,12 @@ export function mergeTxAndWitnessHexWithCborlib(
   return backend.encode(tx).toString("hex");
 }
 
+export function txWithMergedSignature(tx: RawTx, newWitness: RawWitnessSet) {
+  const existingWitness = tx[1];
+  tx[1] = mergeSignatures(existingWitness, newWitness);
+  return tx;
+}
+
 export function mergeSignatures(
   txWitnessSet: RawWitnessSet,
   newSignatures: RawWitnessSet

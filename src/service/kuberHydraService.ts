@@ -10,6 +10,7 @@ import {
 import { UTxO } from "libcardano/cardano/ledger-serialization/txinout";
 import { Commit, RetryConfig } from "./utils/type";
 import { get, post } from "./utils/http";
+import { toUTxO } from "./utils/typeConverters";
 
 export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   kuberHydraServiceInstance: AxiosInstance;
@@ -26,22 +27,24 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
 
   async queryUTxOByAddress(address: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?address=${address}`;
-    return await get(
+    const response = await get(
       this.kuberHydraServiceInstance,
       "KuberHydraService.queryUTxOByAddress",
       request,
       this.retry
     );
+    return toUTxO(response);
   }
 
   async queryUTxOByTxIn(txIn: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?txin=${txIn}`;
-    return await get(
+    const response = await get(
       this.kuberHydraServiceInstance,
       "KuberHydraService.queryUTxOByTxIn",
       request,
       this.retry
     );
+    return toUTxO(response);
   }
 
   async queryProtocolParameters(): Promise<CommonProtocolParameters> {

@@ -1768,7 +1768,7 @@ chalk@^4.0.0, chalk@^4.0.2:
 
 chalk@^5.3.0:
   version "5.4.1"
-  resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.4.1.tgz#1b48bf0963ec158dce2aacf69c093ae2dd2092d8"
+  resolved "https://registry.npmjs.org/chalk/-/chalk-5.4.1.tgz"
   integrity sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w==
 
 char-regex@^1.0.2:
@@ -2613,7 +2613,7 @@ get-tsconfig@^4.7.5:
 
 glob@^10.2.2, glob@^10.3.10:
   version "10.4.5"
-  resolved "https://registry.yarnpkg.com/glob/-/glob-10.4.5.tgz#f4d9f0b90ffdbab09c9d77f5f29b4262517b0956"
+  resolved "https://registry.npmjs.org/glob/-/glob-10.4.5.tgz"
   integrity sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==
   dependencies:
     foreground-child "^3.1.0"
@@ -3506,10 +3506,10 @@ leven@^3.1.0:
   resolved "https://registry.npmjs.org/leven/-/leven-3.1.0.tgz"
   integrity sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==
 
-libcardano-wallet@1.4.32-alpha:
-  version "1.4.32-alpha"
-  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-1.4.32-alpha.tgz#b0d34ff76f34eb239d95be64787f9b51f5b990dd"
-  integrity sha512-M8JVQFAt0MqWgQ4z9NQ3S1AZUVNTyQLNsMCXFovtuvIyl86KCH8uKWtGpZpqbGPPIMyXQEJ73WQoYw2uXnVFTg==
+libcardano-wallet@1.4.33-alpha:
+  version "1.4.33-alpha"
+  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-1.4.33-alpha.tgz#8f8443ffbf043ff3a722ca3a35732032f835c30f"
+  integrity sha512-eiF8e/HmrRl89x+0F6zfFAA7KrRbuSnhTbXNcZIzhrg2BUIsYxqvMJPJchyFD24uEP/GvR5LVbTTDawJJo03Sg==
   dependencies:
     "@cardano-sdk/crypto" "^0.1.32"
     "@noble/curves" "^1.9.0"
@@ -3522,7 +3522,7 @@ libcardano-wallet@1.4.32-alpha:
 
 libcardano@1.4.32-alpha:
   version "1.4.32-alpha"
-  resolved "https://registry.yarnpkg.com/libcardano/-/libcardano-1.4.32-alpha.tgz#2dc486e8e49770eac8088e06c290a767d7f79f4f"
+  resolved "https://registry.npmjs.org/libcardano/-/libcardano-1.4.32-alpha.tgz"
   integrity sha512-h/UW8h+MVHMnLK0Ohu6WDnoaCvgHHaGWASSgp7/9CA2rt3S/pgoHvF16LpaE7a2WeXwDAuWgp4UYXTCxqNAjug==
   dependencies:
     "@cardano-sdk/crypto" "^0.1.32"
@@ -3923,7 +3923,7 @@ minipass@^5.0.0:
 
 "minipass@^5.0.0 || ^6.0.2 || ^7.0.0", minipass@^7.0.3, minipass@^7.0.4, minipass@^7.1.2:
   version "7.1.2"
-  resolved "https://registry.yarnpkg.com/minipass/-/minipass-7.1.2.tgz#93a9626ce5e5e66bd4db86849e7515e92340a707"
+  resolved "https://registry.npmjs.org/minipass/-/minipass-7.1.2.tgz"
   integrity sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==
 
 minizlib@^2.1.1, minizlib@^2.1.2:

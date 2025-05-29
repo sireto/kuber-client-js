@@ -163,7 +163,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   }
 
   async submitTx(txModal: CommonTxObject): Promise<CommonTxObject> {
-    const request = `/hydra/submit`;
+    const request = `/hydra/submit?wait=true`;
     return await post(
       this.kuberHydraServiceInstance,
       "KuberHydraService.submitTx",

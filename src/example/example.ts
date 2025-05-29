@@ -1,4 +1,3 @@
-import { APIError } from "libcardano-wallet/utils/errorHandler";
 import { KuberHydraService } from "../service/kuberHydraService";
 import { HydraWallet } from "../wallet/hydraWallet";
 import { ShelleyWallet } from "libcardano/cardano/primitives/address";
@@ -6,8 +5,9 @@ import { Ed25519Key } from "libcardano/cardano/primitives/keys";
 import { setup } from "libcardano/lib/cardano/crypto";
 import { cborBackend } from "cbor-rpc";
 import { RawTx, RawWitnessSet } from "../types";
-import { txWithMergedSignature } from "..";
 import { KuberNodeService } from "../service/kuberNodeService";
+import { mergeTxAndWitnessHexWithCborlib, txWithMergedSignature } from "..";
+import { APIError } from "../service/utils/errorHandler";
 
 await setup();
 
@@ -80,6 +80,7 @@ export const createSampleOutputTx = (
         },
       },
     ],
+    signatures: [selectionAddress],
   };
 };
 
@@ -92,13 +93,8 @@ export const signAndSubmitHydra = async (txBody: any) => {
     0
   );
   const txCborHex = buildTxResponse.cborHex;
-  const txCborObject: RawTx = cborBackend.decode(Buffer.from(txCborHex, "hex"));
-  const signature: RawWitnessSet = cborBackend.decode(
-    Buffer.from(await myWallet.signTx(txCborHex), "hex")
-  );
-  const signedTxHex = cborBackend
-    .encode(txWithMergedSignature(txCborObject, signature))
-    .toString("hex");
+  const signature: string = await myWallet.signTx(txCborHex);
+  const signedTxHex = txWithMergedSignature(txCborHex, signature);
   const submissionResult = await myWallet.submitTx(signedTxHex);
   return submissionResult;
 };
@@ -108,4 +104,3 @@ export const signAndSubmitHydra = async (txBody: any) => {
 // );
 
 // console.log(walletSubmitTxResult);
-

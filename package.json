@@ -42,7 +42,7 @@
     "cbor-rpc": "^0.0.2",
     "cbor-x": "^1.6.0",
     "libcardano": "1.4.32-alpha",
-    "libcardano-wallet": "1.4.32-alpha"
+    "libcardano-wallet": "1.4.33-alpha"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",

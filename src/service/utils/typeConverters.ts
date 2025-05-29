@@ -60,19 +60,15 @@ export function toUTxO(raw: BalanceResponse): UTxO[] {
         u;
       const isByron = !datum && !datumHash && !inlineDatum && !referenceScript;
       const parsedAddress = addressFromBech32(address);
-      console.log(parsedAddress);
       const parsedValue = valueFromJSON(value);
-      console.log(parsedValue);
       const parsedDatum: DatumOption | undefined = datumHash
         ? datumHash
         : (inlineDatum as HexString)
         ? PlutusData.fromJSON(inlineDatum)
         : undefined;
-      console.log(parsedDatum);
       const parsedRefScript: Script | undefined = referenceScript
         ? Script.fromJSON(referenceScript.script)
         : undefined;
-      console.log(parsedRefScript);
       const txOut = isByron
         ? new PreBabbageOutput(parsedAddress, parsedValue)
         : new PostAlonzoOutput(

@@ -16,7 +16,8 @@ const runParallelSubmitBenchmarks = async () => {
   const signedTxHexes: string[] = [];
   const myWallet = await createHydraWallet(
     hydraService,
-    testWalletSigningKey.cborHex
+    testWalletSigningKey.cborHex,
+    0
   );
   for (let i = 0; i < RUNS; i++) {
     const log: Record<string, number> = {};
@@ -40,12 +41,7 @@ const runParallelSubmitBenchmarks = async () => {
         log
       );
 
-      const txObject = cborBackend.decode(Buffer.from(txCborHex, "hex"));
-      const signatureObject = cborBackend.decode(Buffer.from(signature, "hex"));
-      const signedTxHex = cborBackend
-        .encode(txWithMergedSignature(txObject, signatureObject))
-        .toString("hex");
-
+      const signedTxHex = txWithMergedSignature(txCborHex, signature);
       signedTxHexes.push(signedTxHex);
       prepResults.push(log);
     } catch (error: any) {
@@ -58,7 +54,8 @@ const runParallelSubmitBenchmarks = async () => {
   try {
     const myWallet = await createHydraWallet(
       hydraService,
-      testWalletSigningKey.cborHex
+      testWalletSigningKey.cborHex,
+      0
     );
     await timeAsync(
       "submitTxBulk",

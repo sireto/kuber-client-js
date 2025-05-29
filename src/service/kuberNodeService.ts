@@ -6,7 +6,7 @@ import {
 import {
   CommonProtocolParameters,
   CommonTxObject,
-} from "libcardano-wallet//utils/types";
+} from "libcardano-wallet/utils/types";
 import { get, post } from "./utils/http";
 import { cborBackend } from "cbor-rpc";
 import { RetryConfig } from "./utils/type";

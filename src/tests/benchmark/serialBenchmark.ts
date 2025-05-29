@@ -28,7 +28,8 @@ const runSerialBenchmarks = async () => {
       );
       const myWallet = await createHydraWallet(
         hydraService,
-        testWalletSigningKey.cborHex
+        testWalletSigningKey.cborHex,
+        0
       );
 
       const txCborHex = buildTxResponse.cborHex;
@@ -39,11 +40,7 @@ const runSerialBenchmarks = async () => {
         log
       );
 
-      const txObject = cborBackend.decode(Buffer.from(txCborHex, "hex"));
-      const signatureObject = cborBackend.decode(Buffer.from(signature, "hex"));
-      const signedTxHex = cborBackend
-        .encode(txWithMergedSignature(txObject, signatureObject))
-        .toString("hex");
+      const signedTxHex = txWithMergedSignature(txCborHex, signature);
 
       await timeAsync("submitTx", () => myWallet.submitTx(signedTxHex), log);
 

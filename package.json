@@ -10,6 +10,7 @@
     "compile": "tsc compile",
     "build": "node ./scripts/build.js",
     "publish": "npm run build && cd ./dist && npm publish",
+    "benchmark" : "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
     "test": "jest",
     "mocha": "ts-mocha",
     "version": "npm version --no-git-tag-version",

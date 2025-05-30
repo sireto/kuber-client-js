@@ -3506,10 +3506,10 @@ leven@^3.1.0:
   resolved "https://registry.npmjs.org/leven/-/leven-3.1.0.tgz"
   integrity sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==
 
-libcardano-wallet@1.4.34-alpha:
-  version "1.4.34-alpha"
-  resolved "https://registry.npmjs.org/libcardano-wallet/-/libcardano-wallet-1.4.34-alpha.tgz"
-  integrity sha512-xZbLXXBg+kLg1J1p+ojkRlUXQ31bmAJ4pQR2U0sK7/1m5GO4ITbgESVflp9kVTF+z8oCrvWm+/8pzt1VL3JbHQ==
+libcardano-wallet@1.4.36-alpha:
+  version "1.4.36-alpha"
+  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-1.4.36-alpha.tgz#3de6a2b9768b2873c32c5d905dd3f7c9a6e82c7a"
+  integrity sha512-IDI/xxZ0cwUlHTBeN2RT907aIgNs+VzTDKnvR+txYZ5LkGIG1DSuOsdvyR/JxcKoO4UBu5zGYvh0aVJXU9UxKA==
   dependencies:
     "@cardano-sdk/crypto" "^0.1.32"
     "@noble/curves" "^1.9.0"
@@ -3518,12 +3518,12 @@ libcardano-wallet@1.4.34-alpha:
     blakejs "^1.2.1"
     cbor-rpc "^0.0.2"
     express "^5.1.0"
-    libcardano "1.4.34-alpha"
+    libcardano "1.4.36-alpha"
 
-libcardano@1.4.34-alpha:
-  version "1.4.34-alpha"
-  resolved "https://registry.npmjs.org/libcardano/-/libcardano-1.4.34-alpha.tgz"
-  integrity sha512-uSpHY+2WS5LEHO9jwTPKT9/Zrk3a4YpxPyBbYGUqz96/bszG2lG4UM/B9jk50v6pa/JlaK4H1+uax83brymF+A==
+libcardano@1.4.36-alpha:
+  version "1.4.36-alpha"
+  resolved "https://registry.yarnpkg.com/libcardano/-/libcardano-1.4.36-alpha.tgz#e5745d85604ea2e4d7c027d6be46002c32bb1415"
+  integrity sha512-5Wdzoq24HofZWL/yvxsoWMFdDGsqulO/r19XACr/JWHoDBKuXUMeIOPg9ML097MFRDtcuA61WaDaY0byfGKviw==
   dependencies:
     "@cardano-sdk/crypto" "^0.1.32"
     "@noble/curves" "^1.9.0"
@@ -5236,10 +5236,10 @@ type-is@^2.0.0, type-is@^2.0.1:
     media-typer "^1.1.0"
     mime-types "^3.0.0"
 
-typescript@^4.8.4:
-  version "4.9.5"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-4.9.5.tgz"
-  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
+typescript@^5.8.3:
+  version "5.8.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.8.3.tgz#92f8a3e5e3cf497356f4178c34cd65a7f5e8440e"
+  integrity sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==
 
 undici-types@~6.21.0:
   version "6.21.0"

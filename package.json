@@ -1,6 +1,6 @@
 {
   "name": "kuber-client",
-  "version": "3.1.10",
+  "version": "3.1.10-alpha",
   "description": "Javascript client library for kuber server",
   "main": "src/index.ts",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",
@@ -10,7 +10,7 @@
     "compile": "tsc compile",
     "build": "node ./scripts/build.js",
     "publish": "npm run build && cd ./dist && npm publish",
-    "benchmark" : "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
+    "benchmark": "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
     "test": "jest",
     "mocha": "ts-mocha",
     "version": "npm version --no-git-tag-version",
@@ -42,8 +42,8 @@
     "buffer": "^6.0.3",
     "cbor-rpc": "^0.0.2",
     "cbor-x": "^1.6.0",
-    "libcardano": "1.4.34-alpha",
-    "libcardano-wallet": "1.4.34-alpha"
+    "libcardano": "1.4.36-alpha",
+    "libcardano-wallet": "1.4.36-alpha"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
@@ -54,7 +54,7 @@
     "ts-jest": "^29.0.5",
     "ts-node": "^10.9.1",
     "tsx": "^4.19.4",
-    "typescript": "^4.8.4"
+    "typescript": "^5.8.3"
   },
   "files": [
     "src"

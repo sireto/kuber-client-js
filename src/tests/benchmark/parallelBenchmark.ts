@@ -1,6 +1,7 @@
-import { cborBackend } from "cbor-rpc";
 import { hydraService } from "../service";
 import {
+  createHydraWallet,
+  createSampleOutputTx,
   RUNS,
   testWalletAddress,
   testWalletSigningKey,
@@ -8,7 +9,6 @@ import {
   writeBenchmarkResults,
 } from "./utils";
 import { txWithMergedSignature } from "../..";
-import { createHydraWallet, createSampleOutputTx } from "../../example/example";
 
 const runParallelSubmitBenchmarks = async () => {
   const prepResults: Record<string, number>[] = [];
@@ -16,7 +16,7 @@ const runParallelSubmitBenchmarks = async () => {
   const signedTxHexes: string[] = [];
   const myWallet = await createHydraWallet(
     hydraService,
-    testWalletSigningKey.cborHex,
+    testWalletSigningKey,
     0
   );
   for (let i = 0; i < RUNS; i++) {
@@ -54,7 +54,7 @@ const runParallelSubmitBenchmarks = async () => {
   try {
     const myWallet = await createHydraWallet(
       hydraService,
-      testWalletSigningKey.cborHex,
+      testWalletSigningKey,
       0
     );
     await timeAsync(

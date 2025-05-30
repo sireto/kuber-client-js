@@ -3,48 +3,26 @@ import { HydraWallet } from "../wallet/hydraWallet";
 import { ShelleyWallet } from "libcardano/cardano/primitives/address";
 import { Ed25519Key } from "libcardano/cardano/primitives/keys";
 import { setup } from "libcardano/lib/cardano/crypto";
-import { cborBackend } from "cbor-rpc";
-import { RawTx, RawWitnessSet } from "../types";
-import { KuberNodeService } from "../service/kuberNodeService";
-import { mergeTxAndWitnessHexWithCborlib, txWithMergedSignature } from "..";
-import { APIError } from "../service/utils/errorHandler";
+import { txWithMergedSignature } from "..";
+import { respondWithError } from "../service/utils/errorHandler";
+import path from "path";
 
 await setup();
 
-const testWalletSigningKey = {
-  type: "PaymentSigningKeyShelley_ed25519",
-  description: "Payment Signing Key",
-  cborHex:
-    "582060cf92e6caab015fa7983257800ebed1edd7846bed1faab1a6fafa6b3080de26",
-};
+const testWalletSigningKey = await Ed25519Key.fromCardanoCliFile(
+  path.join("src", "example", "example.sk")
+);
 
-const testWalletAddress =
-  "addr_test1vprwmf60mgz473sm7d4p2y4tnj84e69gva7eaq2zfgzgu5quhdn2q";
+const testWalletAddress = new ShelleyWallet(testWalletSigningKey).addressBech32(
+  0
+);
 
-const respondWithError = (error: any) => {
-  if (error instanceof APIError) {
-    const errorData = error.data ? { data: error.data } : undefined;
-    const errorUrl = error.url ? { url: error.url } : undefined;
-    throw new Error(
-      JSON.stringify({
-        message: error.message,
-        status: error.status,
-        ...errorData,
-        ...errorUrl,
-      })
-    );
-  }
-  throw new Error(error.message);
-};
-
-export async function createHydraWallet(
+async function createHydraWallet(
   service: KuberHydraService,
-  sk: string,
+  ed25519Key: Ed25519Key,
   network: 0 | 1
 ): Promise<HydraWallet> {
   try {
-    const pk = sk.slice(-64); // to make sure the `5820` prefix is excluded
-    const ed25519Key = await Ed25519Key.fromPrivateKeyHex(pk);
     const shelleyWallet = new ShelleyWallet(ed25519Key);
     const hydraWallet = new HydraWallet(service, shelleyWallet, network);
     return hydraWallet;
@@ -56,7 +34,7 @@ export async function createHydraWallet(
 // By this point, the hydra network should be open and ready for transactions
 // Also, the testWalletAddress must be funded within the hydra network
 
-export const createSampleOutputTx = (
+const createSampleOutputTx = (
   selectionAddress: string,
   outputAddress: string
 ) => {
@@ -84,23 +62,23 @@ export const createSampleOutputTx = (
   };
 };
 
-export const signAndSubmitHydra = async (txBody: any) => {
+const signAndSubmitHydra = async (txBody: any) => {
   const hydraService = new KuberHydraService("http://localhost:8081");
   const buildTxResponse = await hydraService.buildTx(txBody, false);
+  console.log("Tx: ", buildTxResponse, "\n");
   const myWallet = await createHydraWallet(
     hydraService,
-    testWalletSigningKey.cborHex,
+    testWalletSigningKey,
     0
   );
   const txCborHex = buildTxResponse.cborHex;
   const signature: string = await myWallet.signTx(txCborHex);
   const signedTxHex = txWithMergedSignature(txCborHex, signature);
   const submissionResult = await myWallet.submitTx(signedTxHex);
+  console.log("Tx Submitted: ", submissionResult, "\n");
   return submissionResult;
 };
 
-// const walletSubmitTxResult = await signAndSubmitHydra(
-//   createSampleOutputTx(testWalletAddress, testWalletAddress)
-// );
-
-// console.log(walletSubmitTxResult);
+await signAndSubmitHydra(
+  createSampleOutputTx(testWalletAddress, testWalletAddress)
+);

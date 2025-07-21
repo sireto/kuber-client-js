@@ -1,23 +1,22 @@
 import axios, { AxiosInstance } from "axios";
 import {
-  QueryAPIProvider,
-  SubmitAPIProvider,
-} from "libcardano-wallet/providers/serviceInterface";
-import {
   CommonProtocolParameters,
   CommonTxObject,
 } from "libcardano-wallet/utils/types";
-import { UTxO } from "libcardano/cardano/ledger-serialization/txinout";
-import { Commit, RetryConfig } from "./utils/type";
-import { get, post } from "./utils/http";
-import { toUTxO } from "./utils/typeConverters";
+import { Commit, RetryConfig } from "../utils/type";
+import { get, post } from "../utils/http";
+import { toUTxO } from "../utils/typeConverters";
+import { HexString, UTxO } from "libcardano/cardano/serialization";
+import { cborBackend } from "cbor-rpc";
+import { KuberProvider } from "./KuberProvider";
 
-export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
-  kuberHydraServiceInstance: AxiosInstance;
+export class KuberHydraApiProvider extends KuberProvider {
+  axios: AxiosInstance;
   retry?: RetryConfig;
 
   constructor(kuberHydraBaseURL: string, retry?: RetryConfig) {
-    this.kuberHydraServiceInstance = axios.create({
+    super()
+    this.axios = axios.create({
       baseURL: kuberHydraBaseURL,
     });
     if (retry) {
@@ -28,7 +27,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   async queryUTxOByAddress(address: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?address=${address}`;
     const response = await get(
-      this.kuberHydraServiceInstance,
+      this.axios,
       "KuberHydraService.queryUTxOByAddress",
       request,
       this.retry
@@ -39,10 +38,7 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   async queryUTxOByTxIn(txIn: string): Promise<UTxO[]> {
     const request = `/hydra/query/utxo?txin=${txIn}`;
     const response = await get(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.queryUTxOByTxIn",
-      request,
-      this.retry
+      this.axios, "  KuberHydraService.queryUTxOByTxIn", request, this.retry
     );
     return toUTxO(response);
   }
@@ -50,75 +46,49 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   async queryProtocolParameters(): Promise<CommonProtocolParameters> {
     const request = `/hydra/query/protocol-parameters`;
     return await get(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.queryProtocolParameters",
-      request,
-      this.retry
+      this.axios, "KuberHydraService.queryProtocolParameters", request, this.retry
     );
   }
 
   async queryHeadState(): Promise<{ state: string }> {
     const request = `/hydra/query/state`;
     return await get(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.queryHeadState",
-      request,
-      this.retry
+      this.axios, "KuberHydraService.queryHeadState", request, this.retry
     );
   }
 
   async initialize(wait: boolean = false) {
     const request = `/hydra/init?wait=${wait}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.initialize",
-      request,
-      null,
-      this.retry
+      this.axios, "KuberHydraService.initialize", request, null, this.retry
     );
   }
 
   async close(wait: boolean = false) {
     const request = `/hydra/close?wait=${wait}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.close",
-      request,
-      null,
-      this.retry
+      this.axios, "KuberHydraService.close", request, null, this.retry
     );
   }
 
   async fanout(wait: boolean = false) {
     const request = `/hydra/fanout?wait=${wait}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.fanout",
-      request,
-      null,
-      this.retry
+      this.axios, "KuberHydraService.fanout", request, null, this.retry
     );
   }
 
   async abort(wait: boolean = false) {
     const request = `/hydra/abort?wait=${wait}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.abort",
-      request,
-      null,
-      this.retry
+      this.axios, "KuberHydraService.abort", request, null, this.retry
     );
   }
 
   async contest(wait: boolean = false) {
     const request = `/hydra/contest?wait=${wait}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.contest",
-      request,
-      null,
-      this.retry
+      this.axios, "KuberHydraService.contest", request, null,this.retry
     );
   }
 
@@ -128,11 +98,8 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   ): Promise<CommonTxObject> {
     const request = `/hydra/commit?submit=${submit}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.commit",
-      request,
-      utxos,
-      this.retry
+      this.axios,
+      "KuberHydraService.commit", request, utxos, this.retry
     );
   }
 
@@ -143,32 +110,38 @@ export class KuberHydraService implements SubmitAPIProvider, QueryAPIProvider {
   ) {
     const request = `/hydra/decommit?wait=${wait}&&submit=${submit}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.decommit",
-      request,
-      utxos,
-      this.retry
+      this.axios,
+      "KuberHydraService.decommit", request, utxos, this.retry
     );
   }
 
   async buildTx(tx: any, submit: boolean = false): Promise<CommonTxObject> {
     const request = `/hydra/tx?submit=${submit}`;
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.buildTx",
-      request,
-      tx,
-      this.retry
+      this.axios,
+      "KuberHydraService.buildTx", request, tx, this.retry
     );
   }
 
-  async submitTx(txModal: CommonTxObject): Promise<CommonTxObject> {
-    const request = `/hydra/submit?wait=true`;
+  async submitTx(cborString: HexString): Promise<CommonTxObject> {
+  const request = `/api/v1/tx/submit`;
+    const hasWitness =
+      Object.keys(cborBackend.decode(Buffer.from(cborString, "hex"))[1])
+        .length != 0;
+    const parsedKuberSubmitObject = {
+      tx: {
+        cborHex: cborString,
+        type: hasWitness
+          ? "Witnessed Tx ConwayEra"
+          : "Unwitnessed Tx ConwayEra",
+        description: "",
+      },
+    };
     return await post(
-      this.kuberHydraServiceInstance,
-      "KuberHydraService.submitTx",
+      this.axios,
+      "KuberApiProvider.submitTx",
       request,
-      txModal,
+      parsedKuberSubmitObject,
       this.retry
     );
   }

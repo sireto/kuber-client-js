@@ -1,5 +1,5 @@
 import { hydraService } from "../service";
-import { txWithMergedSignature } from "../..";
+import { txWithMergedSignature } from "../../src/browser";
 import {
   createHydraWallet,
   createSampleOutputTx,

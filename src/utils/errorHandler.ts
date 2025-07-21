@@ -55,7 +55,7 @@ export async function handleApiError<T>(
         // handle proper logging
         logError(errorMessage, error, log, attempt, maxRetries);
         // Stop retrying if max retries are reached
-        if (attempt > maxRetries) {
+        if (attempt > maxRetries && attempt>1) {
           console.log(`${log} ⛔ Max retries reached. Giving up.`);
           return errorMessage;
         }
@@ -107,9 +107,14 @@ const logError = (
 ) => {
   if (errorMessage.message == "Error in Response") {
     console.log(`${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed:`);
-    console.log("Response Data:", error.response.data);
-    console.log("Response Status:", error.response.status);
-    console.log("Response Headers:", error.response.headers);
+    console.log(`[ ${error.response.status} ]`);
+    if (error.response.headers) {
+      for (const [key, value] of Object.entries(error.response.headers)) {
+        console.log(`  ${key} : ${value}`);
+      }
+    }
+    console.log(error.response.data);
+
   } else if (errorMessage.message == "Error making Request") {
     console.log(
       `${log} ❌ Attempt ${attempt}/${

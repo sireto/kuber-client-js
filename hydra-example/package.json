@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "kuber-client": "file:///Users/sudipbhattarai/Documents/sireto/kuber-client-js/dist"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "start": "node example.cjs",
+    "esm:start": "node example.mjs"
+  },
+  "name": "hydra-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT"
+}

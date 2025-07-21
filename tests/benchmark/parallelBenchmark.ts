@@ -1,4 +1,3 @@
-import { hydraService } from "../service";
 import {
   createHydraWallet,
   createSampleOutputTx,
@@ -8,17 +7,28 @@ import {
   timeAsync,
   writeBenchmarkResults,
 } from "./utils";
-import { txWithMergedSignature } from "../..";
+import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
+import { ShelleyWalletCip30Provider } from "libcardano-wallet/cip30";
+import { ShelleyWallet } from "libcardano-wallet";
 
 const runParallelSubmitBenchmarks = async () => {
+  const kuberHydra =  new KuberHydraApiProvider("http://localhost:8081");
+  const hydraFundKeys = testWalletSigningKey
+  const shelleyWallet= new ShelleyWallet(hydraFundKeys,undefined)
+  const cip30Wallet =new  ShelleyWalletCip30Provider(kuberHydra,kuberHydra,shelleyWallet,1)
+
+
+
+  kuberHydra.buildWithWallet(cip30Wallet,{
+    outputs:{
+      address: shelleyWallet.addressBech32,
+      value: "2A"
+    }
+  })
   const prepResults: Record<string, number>[] = [];
   const submitLog: Record<string, number> = {};
   const signedTxHexes: string[] = [];
-  const myWallet = await createHydraWallet(
-    hydraService,
-    testWalletSigningKey,
-    0
-  );
+
   for (let i = 0; i < RUNS; i++) {
     const log: Record<string, number> = {};
 

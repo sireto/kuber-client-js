@@ -3,3 +3,4 @@
 /__tests__/coverage
 /coverage
 /src/tests/keys
+/tests/benchmark/results

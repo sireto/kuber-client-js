@@ -1,9 +1,8 @@
 import path from "path";
 import fs from "fs";
-import { KuberHydraService } from "../../service/kuberHydraService";
-import { ShelleyWallet, Ed25519Key } from "libcardano";
-import { HydraWallet } from "../../wallet/hydraWallet";
-import { respondWithError } from "../../service/utils/errorHandler";
+import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
+import {  Ed25519Key } from "libcardano";
+import { respondWithError } from "../../src/utils/errorHandler";
 import { setup } from "libcardano/lib/cardano/crypto";
 
 await setup();
@@ -84,7 +83,7 @@ export const testWalletAddress = new ShelleyWallet(
 ).addressBech32(0);
 
 export async function createHydraWallet(
-  service: KuberHydraService,
+  service: KuberHydraApiProvider,
   ed25519Key: Ed25519Key,
   network: 0 | 1
 ): Promise<HydraWallet> {

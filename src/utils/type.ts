@@ -1,4 +1,4 @@
-import { ScriptJSON } from "libcardano/cardano/ledger-serialization/plutusScript";
+import { ScriptJSON } from "libcardano/cardano/serialization/plutusScript";
 
 export type RetryConfig = {
   maxRetries: number;

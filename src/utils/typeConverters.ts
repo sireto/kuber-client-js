@@ -1,25 +1,8 @@
 import { BalanceResponse, UtxoDetails2, JsonValue } from "./type";
-import { ShelleyAddress } from "libcardano/cardano/ledger-serialization/address";
-import {
-  Script,
-  ScriptJSON,
-} from "libcardano/cardano/ledger-serialization/plutusScript";
-import {
-  Output,
-  PostAlonzoOutput,
-  PreBabbageOutput,
-  TxInput,
-  UTxO,
-} from "libcardano/cardano/ledger-serialization/txinout";
-import {
-  Value,
-  valuetoObject,
-} from "libcardano/cardano/ledger-serialization/value";
-import {
-  DatumOption,
-  PlutusData,
-} from "libcardano/cardano/ledger-serialization/plutus";
-import { HexString } from "../../types";
+import { ShelleyAddress } from "libcardano/cardano/serialization/address";
+import {Script, ScriptJSON,} from "libcardano/cardano/serialization/plutusScript";
+import { Output,PostAlonzoOutput, PreBabbageOutput, TxInput, UTxO, Value, valuetoObject, DatumOption, PlutusData,
+} from "libcardano/cardano/serialization";
 
 export function toUTxO(raw: BalanceResponse): UTxO[] {
   const stringToTxInput = (txInStr: string): TxInput => {
@@ -63,7 +46,7 @@ export function toUTxO(raw: BalanceResponse): UTxO[] {
       const parsedValue = valueFromJSON(value);
       const parsedDatum: DatumOption | undefined = datumHash
         ? datumHash
-        : (inlineDatum as HexString)
+        : (inlineDatum as string)
         ? PlutusData.fromJSON(inlineDatum)
         : undefined;
       const parsedRefScript: Script | undefined = referenceScript

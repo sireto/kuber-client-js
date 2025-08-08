@@ -9,10 +9,15 @@ import { toUTxO } from "../utils/typeConverters";
 import { HexString, UTxO } from "libcardano/cardano/serialization";
 import { cborBackend } from "cbor-rpc";
 import { KuberProvider } from "./KuberProvider";
+import { KuberApiProvider } from "./KuberApiProvider";
 
+
+type HydraHeadState = "Initial" | "Idle" | "Closed" | "Contested" | "Open"| "Final"
 export class KuberHydraApiProvider extends KuberProvider {
   axios: AxiosInstance;
   retry?: RetryConfig;
+  public readonly l1Api : KuberApiProvider
+
 
   constructor(kuberHydraBaseURL: string, retry?: RetryConfig) {
     super()
@@ -22,6 +27,7 @@ export class KuberHydraApiProvider extends KuberProvider {
     if (retry) {
       this.retry = retry;
     }
+    this.l1Api = new  KuberApiProvider(kuberHydraBaseURL);
   }
 
   async queryUTxOByAddress(address: string): Promise<UTxO[]> {
@@ -36,9 +42,15 @@ export class KuberHydraApiProvider extends KuberProvider {
   }
 
   async queryUTxOByTxIn(txIn: string): Promise<UTxO[]> {
-    const request = `/hydra/query/utxo?txin=${txIn}`;
+    const request = `/hydra/query/utxo?txin=${txIn.replace('#',encodeURIComponent('#'))}`;
     const response = await get(
       this.axios, "  KuberHydraService.queryUTxOByTxIn", request, this.retry
+    );
+    return toUTxO(response);
+  }
+  async queryUtxos(){
+       const response = await get(
+      this.axios, "  KuberHydraService.queryUTxOByTxIn", `/hydra/query/utxo`, this.retry
     );
     return toUTxO(response);
   }
@@ -50,7 +62,7 @@ export class KuberHydraApiProvider extends KuberProvider {
     );
   }
 
-  async queryHeadState(): Promise<{ state: string }> {
+  async queryHeadState(): Promise<{ state: HydraHeadState }> {
     const request = `/hydra/query/state`;
     return await get(
       this.axios, "KuberHydraService.queryHeadState", request, this.retry
@@ -102,6 +114,13 @@ export class KuberHydraApiProvider extends KuberProvider {
       "KuberHydraService.commit", request, utxos, this.retry
     );
   }
+    async queryCommits(): Promise<Record<string,any>[]> {
+    const request = `/hydra/query/commits`;
+    return await get(
+      this.axios,
+      "KuberHydraService.getCommits", request, this.retry
+    );
+  }
 
   async decommit(
     utxos: Commit,
@@ -144,5 +163,47 @@ export class KuberHydraApiProvider extends KuberProvider {
       parsedKuberSubmitObject,
       this.retry
     );
+  }
+
+  /**
+   * Waits for the head state to reach a specific state.
+   *
+   * @param expectedState - The expected head state (e.g., "Initializing", "Open").
+   * @param timeoutMs - Timeout in milliseconds.
+   * @param pollIntervalMs - Polling interval in milliseconds (default: 4000ms).
+   * @param logPoll - If true, logs the polling status.
+   * @returns A Promise that resolves with the total time spent waiting in milliseconds if the head state matches, or rejects on timeout.
+   */
+  async waitForHeadState(
+    expectedState: HydraHeadState,
+    timeoutMs: number = 80000,
+    logPoll: boolean = false,
+    pollIntervalMs: number = 4000,
+  ): Promise<number> {
+    const start = Date.now();
+
+    while ((Date.now() - start) < timeoutMs) {
+      try {
+        const headState = await this.queryHeadState();
+
+        if (logPoll) {
+          console.log(`Polling head state: Expected "${expectedState}", Current "${headState.state}".`);
+        }
+
+        if (headState.state === expectedState) {
+          return Date.now() - start;
+        }
+      } catch (err: any) {
+        console.warn(`Error while querying head state:`, err.message);
+        // Optional: continue retrying even if one call fails
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    const headState = await this.queryHeadState();
+    if (headState.state === expectedState) {
+      return Date.now() - start;
+    }
+    throw new Error(`Timeout: Head state did not reach "${expectedState}" within ${timeoutMs/1000} seconds, current state is ${headState.state}.`);
   }
 }

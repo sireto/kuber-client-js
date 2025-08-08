@@ -38,11 +38,37 @@ export async function handleApiError<T>(
       attempt++;
 
       if (error.response) {
-        errorMessage = new APIError(
-          "Error in Response",
-          error.response.status,
-          { data: error.response.data }
-        );
+        if (error.response.data) {
+          let errorMessageText = `Api Error response [${error.response.status}] : ${ JSON.stringify(error.response.data)}`;
+          const tempError = new L1TxSubmitError(
+            errorMessageText,
+            error.response.status,
+            error.response.data
+          );
+
+          if (tempError.parsedData && tempError.parsedData.tag === "PostTxOnChainFailed") {
+            if (tempError.parsedData.postTxError && tempError.parsedData.postTxError.tag) {
+              errorMessageText = `Api Error response [${error.response.status}] : ${tempError.parsedData.postTxError.tag}`;
+            }
+            errorMessage = new L1TxSubmitError(
+              errorMessageText,
+              error.response.status,
+              error.response.data
+            );
+          } else {
+            errorMessage = new APIError(
+              `Api Error response [${error.response.status}] : ${ JSON.stringify(error.response.data)}`,
+              error.response.status,
+              { data: error.response.data }
+            );
+          }
+        } else {
+          errorMessage = new APIError(
+            `Api Error response [${error.response.status}]`,
+            error.response.status,
+            {}
+          );
+        }
       } else if (error.request) {
         errorMessage = new APIError(
           "Error making Request",
@@ -149,11 +175,33 @@ export class APIError extends Error {
     this.name = "APIError";
     this.status = status;
 
-    if (options.data) this.data = options.data;
+    if (options.data) this.data = options.data!;
     if (options.url) this.url = options.url;
 
     // Restore prototype chain (important for instanceof checks)
     Object.setPrototypeOf(this, APIError.prototype);
+  }
+}
+
+export class L1TxSubmitError extends APIError {
+  public rawData: any;
+
+  constructor(message: string, status: number, data: any) {
+    super(message, status, { data: typeof data === 'string' ? data : JSON.stringify(data) });
+    this.name = "L1TxSubmitError";
+    this.rawData = data; // Store the raw data
+    Object.setPrototypeOf(this, L1TxSubmitError.prototype);
+  }
+
+  get parsedData(): any {
+    if (typeof this.rawData === 'string') {
+      try {
+        return JSON.parse(this.rawData);
+      } catch (e) {
+        return this.rawData; // Return raw string if parsing fails
+      }
+    }
+    return this.rawData;
   }
 }
 

@@ -1,5 +1,4 @@
 {
-  // https://www.typescriptlang.org/tsconfig#compilerOptions
   "compilerOptions": {
     "esModuleInterop": true,
     "lib": ["es2020", "dom"],
@@ -9,14 +8,13 @@
     "declaration": true,
     "strict": false,
     "sourceMap": true,
+    "inlineSources": true,
+    "rootDir": "./dist",
     "target": "es2022",
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "outDir": "dist",
     "baseUrl": ".",
-    "paths": {
-      "src/*": ["src/*"]
-    }
   },
-  "include": ["src/**/*", "__tests__/**/*", "tests/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["dist/**/*"],
+  "exclude": ["node_modules", "__tests__/**/*", "tests/**/*","src/**"]
 }

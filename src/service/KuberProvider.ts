@@ -5,7 +5,8 @@ import {
 import { 
   CommonProtocolParameters,
   CommonTxObject,} from "libcardano-wallet/utils/types";
-import { Output, UTxO,HexString, TxWitnessSet  } from "libcardano/cardano/serialization";
+import { Output,HexString, TxWitnessSet  } from "libcardano/cardano/serialization";
+import { TxInput, UTxO } from "libcardano/cardano/serialization/txinout";
 import { Cip30, Cip30Provider, Cip30ProviderWrapper } from "libcardano-wallet/cip30";
 import {cborBackend} from "cbor-rpc"
 
@@ -131,5 +132,85 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
   ):Promise<any>{
     const signed = await this.buildAndSignWithWallet(cip30OrProvider,buildRequest,autoAddCollateral,estimatedSpending)
     return cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString('hex'))
+  }
+
+  /**
+   * Waits for a transaction output to vanish.
+   * @param utxo The transaction ID or UTxO identifier.
+   * @param pollIntervalMs The interval in milliseconds to poll for the UTxO.
+   * @param timeoutMs The maximum time in milliseconds to wait.
+   * @returns A promise that resolves with the total time spent waiting in milliseconds when the UTxO vanishes.
+   */
+  async waitForUtxoConsumption(
+    txin: TxInput,
+    timeoutMs: number = 80000,
+    logPoll: boolean = false,
+    pollIntervalMs: number = 5000,
+  ): Promise<number> {
+    const startTime = Date.now();
+    const txHash=txin.txHash.toString('hex')
+    const utxo = txHash+'#' + txin.index
+    while (Date.now() - startTime < timeoutMs) {
+      const utxos = await this.queryUTxOByTxIn(utxo);
+      // UTxO type has txIn which contains txHash (Buffer) and index.
+      // We need to check for both to uniquely identify a UTxO.
+      const txExists = utxos.some(utxo =>
+        
+        utxo.txIn.txHash.compare(txin.txHash) === 0 &&
+        utxo.txIn.index === txin.index
+      );
+
+      if (logPoll) {
+        console.log(`Checking UTxO: ${utxo}. Is not spent.`);
+      }
+
+      if (!txExists) {
+        return Date.now() - startTime; // UTxO has vanished
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    throw new Error(`Timeout waiting for UTxO ${utxo} to be spent.`);
+  }
+
+  /**
+   * Waits for a transaction to be confirmed by querying UTxO by TxIn.
+   * Confirmation is determined by checking if the query returns more than one UTxO.
+   *
+   * @param txHash - The transaction hash (without the #0).
+   * @param timeoutMs - Timeout in milliseconds.
+   * @param pollIntervalMs - Polling interval in milliseconds (default: 3000ms).
+   * @param logPoll - If true, logs the polling status.
+   * @returns A Promise that resolves with the total time spent waiting in milliseconds if confirmed, or rejects on timeout.
+   */
+  async waitForTxConfirmation(
+    txHash: string,
+    timeoutMs: number =80000,
+    logPoll: boolean = false,
+    pollIntervalMs: number = 5000,
+  ): Promise<number> {
+    const txIn = `${txHash}#0`;
+    const start = Date.now();
+
+    while ((Date.now() - start) < timeoutMs) {
+      try {
+        const result = await this.queryUTxOByTxIn(txIn);
+
+        if (logPoll) {
+          console.log(`Polling for confirmation of tx: ${txHash}. Result length: ${result.length}`);
+        }
+
+        if (Array.isArray(result) && result.length > 1) {
+          return Date.now() - start; // Transaction confirmed
+        }
+      } catch (err: any) {
+        console.warn(`Error while querying UTxO for tx ${txHash}:`, err.message);
+        // Optional: continue retrying even if one call fails
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new Error(`Timeout waiting for transaction ${txHash} confirmation.`);
   }
 }

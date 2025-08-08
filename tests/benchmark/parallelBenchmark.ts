@@ -8,23 +8,22 @@ import {
   writeBenchmarkResults,
 } from "./utils";
 import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
-import { ShelleyWalletCip30Provider } from "libcardano-wallet/cip30";
+import { Cip30ShelleyWallet } from "libcardano-wallet/cip30";
 import { ShelleyWallet } from "libcardano-wallet";
+type TxSignResponse = {
+  newWitnesses: TxWitnessSet;
+  newWitnessesBytes: Buffer;
+  updatedTx: any[];
+  updatedTxBytes: Buffer;
+};
+import { TxWitnessSet } from "libcardano/cardano/serialization/txWitnessSet";
 
 const runParallelSubmitBenchmarks = async () => {
-  const kuberHydra =  new KuberHydraApiProvider("http://localhost:8081");
+  const kuberHydra =  new KuberHydraApiProvider("http://172.31.6.1:8082");
   const hydraFundKeys = testWalletSigningKey
   const shelleyWallet= new ShelleyWallet(hydraFundKeys,undefined)
-  const cip30Wallet =new  ShelleyWalletCip30Provider(kuberHydra,kuberHydra,shelleyWallet,1)
+  const cip30Wallet =new  Cip30ShelleyWallet(kuberHydra,kuberHydra,shelleyWallet,1)
 
-
-
-  kuberHydra.buildWithWallet(cip30Wallet,{
-    outputs:{
-      address: shelleyWallet.addressBech32,
-      value: "2A"
-    }
-  })
   const prepResults: Record<string, number>[] = [];
   const submitLog: Record<string, number> = {};
   const signedTxHexes: string[] = [];
@@ -39,20 +38,24 @@ const runParallelSubmitBenchmarks = async () => {
       );
       const buildTxResponse = await timeAsync(
         `buildTx`,
-        () => hydraService.buildTx(sampleOutputTx, false),
+        () => kuberHydra.buildTx(sampleOutputTx, false),
         log
       );
 
       const txCborHex = buildTxResponse.cborHex;
+      const myWallet = await createHydraWallet(
+        kuberHydra,
+        testWalletSigningKey,
+        0
+      );
 
       const signature = await timeAsync(
         `signTx`,
         () => myWallet.signTx(txCborHex),
         log
-      );
+      ) as TxSignResponse;
 
-      const signedTxHex = txWithMergedSignature(txCborHex, signature);
-      signedTxHexes.push(signedTxHex);
+      signedTxHexes.push(signature.updatedTxBytes.toString('hex'));
       prepResults.push(log);
     } catch (error: any) {
       console.error(`Prep Run ${i + 1} failed:`, error.message);
@@ -62,15 +65,10 @@ const runParallelSubmitBenchmarks = async () => {
 
   // Submit all transactions in parallel
   try {
-    const myWallet = await createHydraWallet(
-      hydraService,
-      testWalletSigningKey,
-      0
-    );
     await timeAsync(
       "submitTxBulk",
       async () => {
-        await Promise.all(signedTxHexes.map((tx) => myWallet.submitTx(tx)));
+        await Promise.all(signedTxHexes.map((tx) => kuberHydra.l1Api.submitTx(tx)));
       },
       submitLog
     );

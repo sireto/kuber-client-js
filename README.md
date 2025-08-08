@@ -26,6 +26,10 @@ $ npm install kuber-client
 
 *   **KuberHydra API Service:** For Hydra-related operations, an instance of the [KuberHydra API service](https://github.com/dQuadrant/kuber/tree/master/kuber-hydra) is required. It provides hydra as well as Layer1 APIs.
 
+## Kuber Transaction Builder reference
+[Docs : kuberide.com](https://kuberide.com/kuber/docs/tx-builder-reference)
+
+
 ## Examples
 
 ### [Client] Browser Example
@@ -148,5 +152,4 @@ async function main() {
 Promise.resolve(main());
 ```
 
-## Kuber Api Reference
-[dquadrant/kuber](https://github.com/dQuadrant/kuber/blob/master/docs/json-api-reference.md)
+

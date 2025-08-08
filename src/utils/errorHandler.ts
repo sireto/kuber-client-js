@@ -23,7 +23,7 @@ export async function handleApiError<T>(
   promiseFactory: () => Promise<T>,
   log: string,
   maxRetries = 0,
-  delayMs = 500
+  delayMs = 500,
 ): Promise<T | APIError> {
   let attempt = 0;
   let errorMessage: APIError = new APIError("unknown", 0, {});
@@ -39,41 +39,29 @@ export async function handleApiError<T>(
 
       if (error.response) {
         if (error.response.data) {
-          let errorMessageText = `Api Error response [${error.response.status}] : ${ JSON.stringify(error.response.data)}`;
-          const tempError = new L1TxSubmitError(
-            errorMessageText,
-            error.response.status,
-            error.response.data
-          );
+          let errorMessageText = `Api Error response [${error.response.status}] : ${JSON.stringify(error.response.data)}`;
+          const tempError = new L1TxSubmitError(errorMessageText, error.response.status, error.response.data);
 
           if (tempError.parsedData && tempError.parsedData.tag === "PostTxOnChainFailed") {
             if (tempError.parsedData.postTxError && tempError.parsedData.postTxError.tag) {
               errorMessageText = `Api Error response [${error.response.status}] : ${tempError.parsedData.postTxError.tag}`;
             }
-            errorMessage = new L1TxSubmitError(
-              errorMessageText,
-              error.response.status,
-              error.response.data
-            );
+            errorMessage = new L1TxSubmitError(errorMessageText, error.response.status, error.response.data);
           } else {
             errorMessage = new APIError(
-              `Api Error response [${error.response.status}] : ${ JSON.stringify(error.response.data)}`,
+              `Api Error response [${error.response.status}] : ${JSON.stringify(error.response.data)}`,
               error.response.status,
-              { data: error.response.data }
+              { data: error.response.data },
             );
           }
         } else {
-          errorMessage = new APIError(
-            `Api Error response [${error.response.status}]`,
-            error.response.status,
-            {}
-          );
+          errorMessage = new APIError(`Api Error response [${error.response.status}]`, error.response.status, {});
         }
       } else if (error.request) {
         errorMessage = new APIError(
           "Error making Request",
           ErrorStatusCodes[error.code as keyof typeof ErrorStatusCodes] || 500,
-          { url: error.request._currentUrl }
+          { url: error.request._currentUrl },
         );
       }
 
@@ -81,7 +69,7 @@ export async function handleApiError<T>(
         // handle proper logging
         logError(errorMessage, error, log, attempt, maxRetries);
         // Stop retrying if max retries are reached
-        if (attempt > maxRetries && attempt>1) {
+        if (attempt > maxRetries && attempt > 1) {
           console.log(`${log} ⛔ Max retries reached. Giving up.`);
           return errorMessage;
         }
@@ -104,11 +92,7 @@ export function isApiError(data: any): boolean {
   if (typeof data == "object") {
     const keys = Object.keys(data);
     if (keys.length === 3) {
-      if (
-        keys.includes("message") &&
-        keys.includes("status") &&
-        (keys.includes("data") || keys.includes("url"))
-      ) {
+      if (keys.includes("message") && keys.includes("status") && (keys.includes("data") || keys.includes("url"))) {
         return true;
       }
     }
@@ -124,13 +108,7 @@ const retryError = (status: number) => {
   return status == 429 || (status >= 500 && status != 503);
 };
 
-const logError = (
-  errorMessage: APIError,
-  error: any,
-  log: string,
-  attempt: number,
-  maxRetries: number
-) => {
+const logError = (errorMessage: APIError, error: any, log: string, attempt: number, maxRetries: number) => {
   if (errorMessage.message == "Error in Response") {
     console.log(`${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed:`);
     console.log(`[ ${error.response.status} ]`);
@@ -140,24 +118,14 @@ const logError = (
       }
     }
     console.log(error.response.data);
-
   } else if (errorMessage.message == "Error making Request") {
     console.log(
-      `${log} ❌ Attempt ${attempt}/${
-        maxRetries + 1
-      } failed: Request sent but no response received. [ERROR]: ${
+      `${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed: Request sent but no response received. [ERROR]: ${
         error.code
-      }. ${
-        error.request._currentUrl
-          ? `Request URL: ${error.request._currentUrl}`
-          : ""
-      }`
+      }. ${error.request._currentUrl ? `Request URL: ${error.request._currentUrl}` : ""}`,
     );
   } else {
-    console.log(
-      `${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed: Error:`,
-      error.message
-    );
+    console.log(`${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed: Error:`, error.message);
   }
 };
 
@@ -166,11 +134,7 @@ export class APIError extends Error {
   public data?: string;
   public url?: string;
 
-  constructor(
-    message: string,
-    status: number,
-    options: { data?: string; url?: string } = {}
-  ) {
+  constructor(message: string, status: number, options: { data?: string; url?: string } = {}) {
     super(message);
     this.name = "APIError";
     this.status = status;
@@ -187,14 +151,14 @@ export class L1TxSubmitError extends APIError {
   public rawData: any;
 
   constructor(message: string, status: number, data: any) {
-    super(message, status, { data: typeof data === 'string' ? data : JSON.stringify(data) });
+    super(message, status, { data: typeof data === "string" ? data : JSON.stringify(data) });
     this.name = "L1TxSubmitError";
     this.rawData = data; // Store the raw data
     Object.setPrototypeOf(this, L1TxSubmitError.prototype);
   }
 
   get parsedData(): any {
-    if (typeof this.rawData === 'string') {
+    if (typeof this.rawData === "string") {
       try {
         return JSON.parse(this.rawData);
       } catch (e) {
@@ -225,7 +189,7 @@ export const respondWithError = (error: any) => {
         status: error.status,
         ...errorData,
         ...errorUrl,
-      })
+      }),
     );
   }
   throw new Error(error.message);

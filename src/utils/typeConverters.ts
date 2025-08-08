@@ -1,7 +1,16 @@
 import { BalanceResponse, UtxoDetails2, JsonValue } from "./type";
 import { ShelleyAddress } from "libcardano/cardano/serialization/address";
-import {Script, ScriptJSON,} from "libcardano/cardano/serialization/plutusScript";
-import { Output,PostAlonzoOutput, PreBabbageOutput, TxInput, UTxO, Value, valuetoObject, DatumOption, PlutusData,
+import { Script, ScriptJSON } from "libcardano/cardano/serialization/plutusScript";
+import {
+  Output,
+  PostAlonzoOutput,
+  PreBabbageOutput,
+  TxInput,
+  UTxO,
+  Value,
+  valuetoObject,
+  DatumOption,
+  PlutusData,
 } from "libcardano/cardano/serialization";
 
 export function toUTxO(raw: BalanceResponse): UTxO[] {
@@ -30,36 +39,26 @@ export function toUTxO(raw: BalanceResponse): UTxO[] {
       const address = addressFromBech32(utxo.address);
       const value = valueFromJSON(utxo.value);
       const datum = utxo.datum ? datumFromJSON(utxo.datum) : undefined;
-      const script = utxo.script
-        ? scriptFromJSON(utxo.script.script)
-        : undefined;
+      const script = utxo.script ? scriptFromJSON(utxo.script.script) : undefined;
       const txOut: Output = new PostAlonzoOutput(address, value, datum, script);
       return new UTxO(txIn, txOut);
     });
   } else {
     return Object.entries(raw).map(([txHash, u]) => {
       const txIn: TxInput = stringToTxInput(txHash);
-      const { address, value, datum, datumHash, inlineDatum, referenceScript } =
-        u;
+      const { address, value, datum, datumHash, inlineDatum, referenceScript } = u;
       const isByron = !datum && !datumHash && !inlineDatum && !referenceScript;
       const parsedAddress = addressFromBech32(address);
       const parsedValue = valueFromJSON(value);
       const parsedDatum: DatumOption | undefined = datumHash
         ? datumHash
         : (inlineDatum as string)
-        ? PlutusData.fromJSON(inlineDatum)
-        : undefined;
-      const parsedRefScript: Script | undefined = referenceScript
-        ? Script.fromJSON(referenceScript.script)
-        : undefined;
+          ? PlutusData.fromJSON(inlineDatum)
+          : undefined;
+      const parsedRefScript: Script | undefined = referenceScript ? Script.fromJSON(referenceScript.script) : undefined;
       const txOut = isByron
         ? new PreBabbageOutput(parsedAddress, parsedValue)
-        : new PostAlonzoOutput(
-            parsedAddress,
-            parsedValue,
-            parsedDatum,
-            parsedRefScript
-          );
+        : new PostAlonzoOutput(parsedAddress, parsedValue, parsedDatum, parsedRefScript);
       return new UTxO(txIn, txOut);
     });
   }

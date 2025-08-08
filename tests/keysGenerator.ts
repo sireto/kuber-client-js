@@ -24,7 +24,7 @@ function generateNodeKeys(name: string, dir: string) {
       `cardano-cli address key-gen \
       --verification-key-file ${vkPath} \
       --signing-key-file ${skPath}`,
-      { stdio: "inherit" }
+      { stdio: "inherit" },
     );
   }
 
@@ -34,7 +34,7 @@ function generateNodeKeys(name: string, dir: string) {
       --verification-key-file ${vkPath} \
       --out-file ${addrPath} \
       --testnet-magic 2`,
-      { stdio: "inherit" }
+      { stdio: "inherit" },
     );
   }
 }

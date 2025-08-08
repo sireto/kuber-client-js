@@ -1,5 +1,4 @@
-import {CardanoExtension, Cip30Provider, Cip30ProviderWrapper, CipExtension} from 'libcardano-wallet/cip30'
-
+import { CardanoExtension, Cip30Provider, Cip30ProviderWrapper, CipExtension } from "libcardano-wallet/cip30";
 
 declare global {
   interface Window {
@@ -7,14 +6,10 @@ declare global {
   }
 }
 
-
-
-export class BrowserCardanoExtension{
+export class BrowserCardanoExtension {
   apiVersion: string;
   enable(options?: { extensions: CipExtension[] }): Promise<Cip30Provider> {
-    return this.__provider
-      .enable(options)
-      .then((instance) => new Cip30ProviderWrapper(instance));
+    return this.__provider.enable(options).then((instance) => new Cip30ProviderWrapper(instance));
   }
 
   icon: string;
@@ -34,7 +29,7 @@ export class BrowserCardanoExtension{
 
   static list(): BrowserCardanoExtension[] {
     const pluginMap = new Map();
-    if (!(window?.cardano)) {
+    if (!window?.cardano) {
       return [];
     }
     Object.keys(window?.cardano || {}).forEach((x) => {
@@ -45,6 +40,6 @@ export class BrowserCardanoExtension{
     });
     const providers = Array.from(pluginMap.values());
     console.info("BrowserCardanoExtension.list", providers);
-    return providers.map(x=>new BrowserCardanoExtension(x))
+    return providers.map((x) => new BrowserCardanoExtension(x));
   }
 }

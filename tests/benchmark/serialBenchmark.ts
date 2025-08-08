@@ -24,31 +24,19 @@ const runSerialBenchmarks = async () => {
     const log: Record<string, number> = {};
 
     try {
-      const myWallet = await createHydraWallet(
-        hydra,
-        testWalletSigningKey,
-        0
-      );
+      const myWallet = await createHydraWallet(hydra, testWalletSigningKey, 0);
 
       const buildTxResponse = await timeAsync(
         "buildTx",
-        () =>
-          hydra.buildTx(
-            createSampleOutputTx(testWalletAddress, testWalletAddress),
-            false
-          ),
-        log
+        () => hydra.buildTx(createSampleOutputTx(testWalletAddress, testWalletAddress), false),
+        log,
       );
-      
+
       const txCborHex = buildTxResponse.cborHex;
 
-      const signature = await timeAsync(
-        "signTx",
-        () => myWallet.signTx(txCborHex),
-        log
-      ) as TxSignResponse;
+      const signature = (await timeAsync("signTx", () => myWallet.signTx(txCborHex), log)) as TxSignResponse;
 
-      await timeAsync("submitTx", () => hydra.l1Api.submitTx(signature.updatedTxBytes.toString('hex')), log);
+      await timeAsync("submitTx", () => hydra.l1Api.submitTx(signature.updatedTxBytes.toString("hex")), log);
 
       results.push(log);
     } catch (error: any) {

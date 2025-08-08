@@ -1,23 +1,17 @@
-import {
-  QueryAPIProvider,
-  SubmitAPIProvider,
-} from "libcardano-wallet";
-import { 
-  CommonProtocolParameters,
-  CommonTxObject,} from "libcardano-wallet/utils/types";
-import { Output,HexString, TxWitnessSet  } from "libcardano/cardano/serialization";
+import { QueryAPIProvider, SubmitAPIProvider } from "libcardano-wallet";
+import { CommonProtocolParameters, CommonTxObject } from "libcardano-wallet/utils/types";
+import { Output, HexString, TxWitnessSet } from "libcardano/cardano/serialization";
 import { TxInput, UTxO } from "libcardano/cardano/serialization/txinout";
 import { Cip30, Cip30Provider, Cip30ProviderWrapper } from "libcardano-wallet/cip30";
-import {cborBackend} from "cbor-rpc"
+import { cborBackend } from "cbor-rpc";
 
 export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvider {
   abstract submitTx(tx: HexString): Promise<any>;
   abstract queryUTxOByAddress(addresss: string): Promise<UTxO[]>;
-  abstract queryUTxOByTxIn(txIn: string):  Promise<UTxO[]>;
+  abstract queryUTxOByTxIn(txIn: string): Promise<UTxO[]>;
   abstract queryProtocolParameters(): Promise<CommonProtocolParameters>;
 
-
-    /**
+  /**
    * Build a transaction with kuber.
    * The built transaction will already have exact min-fee, exact execution-units and extra change output if necessary.
    * The transaction will be ready to be signed and submitted.
@@ -30,10 +24,9 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
    *  set this to true if you want to specify exact collateral utxo.
    * @returns A new rejected Promise.
    */
-  abstract  buildTx (txBuilder: any, submit: boolean): Promise<CommonTxObject> ;
+  abstract buildTx(txBuilder: any, submit: boolean): Promise<CommonTxObject>;
 
-
-    /**
+  /**
    * Build a transaction with kuber. This function adds the available Utxos in the wallet to selection
    * @param cip30Instance Browser cip30 provider instance obtained with enable()
    * @param buildRequest  Object following Kuber's transaction builder JSON spec
@@ -46,28 +39,30 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     cip30OrProvider: Cip30 | Cip30Provider,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
-    estimatedSpending?: number|bigint
+    estimatedSpending?: number | bigint,
   ): Promise<CommonTxObject> {
-    const cip30:Cip30 = (cip30OrProvider as Cip30Provider).toProtableCip30? (cip30OrProvider as Cip30Provider).toProtableCip30(): cip30OrProvider as Cip30;
+    const cip30: Cip30 = (cip30OrProvider as Cip30Provider).toProtableCip30
+      ? (cip30OrProvider as Cip30Provider).toProtableCip30()
+      : (cip30OrProvider as Cip30);
     const walletUtxos = await cip30.getUtxos();
     let selectedUtxos = walletUtxos;
-    
+
     if (estimatedSpending) {
       let toBigInt = (x: number | bigint) => {
         if (typeof x == "number") return BigInt(x);
         else return x;
       };
-      estimatedSpending=toBigInt(estimatedSpending)
+      estimatedSpending = toBigInt(estimatedSpending);
       let adaValue = BigInt(0);
 
       let minimumSelections: number = 1;
       walletUtxos.forEach((utxo) => {
-        const utxoDecoded=cborBackend.decode(Buffer.from(utxo,"hex"))
-        const txOut=Output.fromCborObject(utxoDecoded[1])
-        adaValue +=txOut.value.lovelace
+        const utxoDecoded = cborBackend.decode(Buffer.from(utxo, "hex"));
+        const txOut = Output.fromCborObject(utxoDecoded[1]);
+        adaValue += txOut.value.lovelace;
         if (adaValue >= (estimatedSpending as bigint)) {
-            selectedUtxos = walletUtxos.slice(0, minimumSelections);
-            return;
+          selectedUtxos = walletUtxos.slice(0, minimumSelections);
+          return;
         }
         minimumSelections++;
       });
@@ -89,49 +84,50 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     } else {
       buildRequest.selections = concat(buildRequest.selections, selectedUtxos);
     }
-    if(!buildRequest.changeAddress){
-      buildRequest.changeAddress= await cip30.getChangeAddress()
+    if (!buildRequest.changeAddress) {
+      buildRequest.changeAddress = await cip30.getChangeAddress();
     }
 
     if (!buildRequest.inputs && !buildRequest.selections) {
-      throw Error(
-        "Expectation Failed : No Utxos available as `input` or `selection`"
-      );
+      throw Error("Expectation Failed : No Utxos available as `input` or `selection`");
     }
     if (autoAddCollateral && cip30.getCollateral) {
       if (!buildRequest.collateral && !buildRequest.collaterals) {
         buildRequest.collaterals = await cip30.getCollateral();
       }
     }
-    return this.buildTx(buildRequest,false);
+    return this.buildTx(buildRequest, false);
   }
   async buildAndSignWithWallet(
     cip30OrProvider: Cip30 | Cip30Provider,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
-    estimatedSpending?: number|bigint
-  ):Promise<{
+    estimatedSpending?: number | bigint,
+  ): Promise<{
     newWitnesses: TxWitnessSet;
     newWitnessesBytes: Buffer;
     updatedTx: any[];
-}>{
-    const cip30:Cip30Provider = 
-      (cip30OrProvider as Cip30Provider).toProtableCip30
-        ? (cip30OrProvider as Cip30Provider)
-        : new Cip30ProviderWrapper(cip30OrProvider as Cip30);
+  }> {
+    const cip30: Cip30Provider = (cip30OrProvider as Cip30Provider).toProtableCip30
+      ? (cip30OrProvider as Cip30Provider)
+      : new Cip30ProviderWrapper(cip30OrProvider as Cip30);
 
-    const built = await this.buildWithWallet(cip30OrProvider,buildRequest,autoAddCollateral,estimatedSpending)
-    return cip30.signTx(built.cborHex,true)
-
+    const built = await this.buildWithWallet(cip30OrProvider, buildRequest, autoAddCollateral, estimatedSpending);
+    return cip30.signTx(built.cborHex, true);
   }
   async buildAndSubmitWithWallet(
     cip30OrProvider: Cip30 | Cip30Provider,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
-    estimatedSpending?: number|bigint
-  ):Promise<any>{
-    const signed = await this.buildAndSignWithWallet(cip30OrProvider,buildRequest,autoAddCollateral,estimatedSpending)
-    return cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString('hex'))
+    estimatedSpending?: number | bigint,
+  ): Promise<any> {
+    const signed = await this.buildAndSignWithWallet(
+      cip30OrProvider,
+      buildRequest,
+      autoAddCollateral,
+      estimatedSpending,
+    );
+    return cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString("hex"));
   }
 
   /**
@@ -148,16 +144,14 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     pollIntervalMs: number = 5000,
   ): Promise<number> {
     const startTime = Date.now();
-    const txHash=txin.txHash.toString('hex')
-    const utxo = txHash+'#' + txin.index
+    const txHash = txin.txHash.toString("hex");
+    const utxo = txHash + "#" + txin.index;
     while (Date.now() - startTime < timeoutMs) {
       const utxos = await this.queryUTxOByTxIn(utxo);
       // UTxO type has txIn which contains txHash (Buffer) and index.
       // We need to check for both to uniquely identify a UTxO.
-      const txExists = utxos.some(utxo =>
-        
-        utxo.txIn.txHash.compare(txin.txHash) === 0 &&
-        utxo.txIn.index === txin.index
+      const txExists = utxos.some(
+        (utxo) => utxo.txIn.txHash.compare(txin.txHash) === 0 && utxo.txIn.index === txin.index,
       );
 
       if (logPoll) {
@@ -168,7 +162,7 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
         return Date.now() - startTime; // UTxO has vanished
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
     throw new Error(`Timeout waiting for UTxO ${utxo} to be spent.`);
   }
@@ -185,14 +179,14 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
    */
   async waitForTxConfirmation(
     txHash: string,
-    timeoutMs: number =80000,
+    timeoutMs: number = 80000,
     logPoll: boolean = false,
     pollIntervalMs: number = 5000,
   ): Promise<number> {
     const txIn = `${txHash}#0`;
     const start = Date.now();
 
-    while ((Date.now() - start) < timeoutMs) {
+    while (Date.now() - start < timeoutMs) {
       try {
         const result = await this.queryUTxOByTxIn(txIn);
 
@@ -208,7 +202,7 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
         // Optional: continue retrying even if one call fails
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
     throw new Error(`Timeout waiting for transaction ${txHash} confirmation.`);

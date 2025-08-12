@@ -9,7 +9,7 @@ import { randomBytes } from "crypto";
 import { describe, it, beforeAll, expect, test } from "vitest";
 
 describe("KuberHydraApiProvider Operations", async () => {
-  let hydra = new KuberHydraApiProvider("http://172.31.6.1:8082");
+  let hydra = new KuberHydraApiProvider("http://172.31.6.1:8081");
   let cip30Wallet: Cip30ShelleyWallet;
   let walletAddress: string = ""; // Initialize with an empty string
   let head = await hydra.queryHeadState();
@@ -144,17 +144,36 @@ describe("KuberHydraApiProvider Operations", async () => {
     }
   });
 
-  it("should attempt to Decommit UTxOs (expected to warn if no UTxOs)", async () => {
-    const utxosToDecommit = { utxos: [] };
-    const commits = await hydra.queryCommits();
+it.skipIf(["Closed", "Final", "Initial"].includes(head.state))("should attempt to Decommit UTxOs", async () => {
 
-    const decommitResult = await hydra.decommit(utxosToDecommit, true, true);
-    console.log("decommitResult", decommitResult);
-  });
+  const commits = await hydra.queryCommits();
+
+  // Filter the commits of current wallet
+  const filteredEntries = Object.entries(commits).filter(
+    ([utxoId, commit]: [string, any]) => commit.address === walletAddress
+  ).map(x => x[0])
+
+
+  if (filteredEntries.length === 0) {
+    console.warn("No UTxOs found for the given wallet address.");
+    return;
+  }
+  const utxoIdsToDecommit = filteredEntries[0]
+
+
+  // Decommit first utxo in the commit list.
+  const decommitResult = await hydra.decommit({ utxos: [utxoIdsToDecommit] }, true, true);
+  console.log("decommitResult", decommitResult);
+});
 
   it.skipIf(["Closed", "Final", "Initial"].includes(head.state))("should Close Head", async () => {
     await hydra.close(true);
     await hydra.waitForHeadState("Closed", 180000, true);
+  });
+
+  it.runIf(head.state === "Closed")("should attempt to Contest", async () => {
+    const contestResult = await hydra.contest(true);
+    console.log("contestResult", contestResult);
   });
 
   it.runIf(head.state == "Closed")("should Fanout Head", async () => {
@@ -169,8 +188,4 @@ describe("KuberHydraApiProvider Operations", async () => {
     await hydra.waitForHeadState("Idle", 180000, true);
   }, 200000);
 
-  it.runIf(head.state === "Closed")("should attempt to Contest", async () => {
-    const contestResult = await hydra.contest(true);
-    console.log("contestResult", contestResult);
-  });
 });

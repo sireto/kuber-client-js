@@ -1,4 +1,3 @@
-import { cborBackend } from "cbor-rpc";
 import { readFileSync } from "fs";
 import { loadCrypto, Ed25519Key, Value } from "libcardano";
 import { ShelleyWallet, Cip30ShelleyWallet } from "libcardano-wallet";
@@ -6,14 +5,39 @@ import { KuberHydraApiProvider } from "../src/service/KuberHydraApiProvider";
 import { CommonProtocolParameters } from "libcardano-wallet/utils/types";
 import { UTxO } from "libcardano/cardano/serialization";
 import { randomBytes } from "crypto";
-import { describe, it, beforeAll, expect, test } from "vitest";
+import { describe, beforeAll, expect, test } from "vitest";
 
 describe("KuberHydraApiProvider Operations", async () => {
-  let hydra = new KuberHydraApiProvider("http://172.31.6.1:8081");
+  let hydra = new KuberHydraApiProvider("http://172.31.6.1:8082");
   let cip30Wallet: Cip30ShelleyWallet;
   let walletAddress: string = ""; // Initialize with an empty string
-  let head = await hydra.queryHeadState();
+  let head = await hydra.queryHead();
   let nodeAddr = "";
+
+  function runTestWhen(
+    condition: boolean,
+    description: string,
+    testFn: () => Promise<void> | void,
+    options?: { timeout?: number },
+  ) {
+    const testName = `When head is ${head.tag} then should ${description}`;
+    const skippedTestName = `When head is ${head.tag} then should skip ${description}`;
+
+    if (!condition) {
+      test.skip(skippedTestName, testFn, options?.timeout);
+    } else {
+      test(testName, testFn, options?.timeout);
+    }
+  }
+
+  function runTest(
+    description: string,
+    testFn: () => Promise<void> | void,
+    options?: { timeout?: number },
+  ) {
+    runTestWhen(true, description, testFn, options);
+  }
+
   beforeAll(async () => {
     // load key files
 
@@ -30,52 +54,47 @@ describe("KuberHydraApiProvider Operations", async () => {
     cip30Wallet = new Cip30ShelleyWallet(hydra, hydra, shelleyWallet, 0);
     walletAddress = (await cip30Wallet.getChangeAddress()).toBech32();
   }, 20000);
-  it("Should query head state", () => {
-    expect(head.state).toBeTruthy();
-    console.log("Initial Head state is", head.state);
+  afterAll(async()=>{
+    head =  await hydra.queryHead();
+  })
+  
+  runTest("query head state", () => {
+    expect(head.tag).toBeTruthy();
+    console.log("Initial Head state is", head.tag);
   });
 
-  test.runIf(head.state === "Idle")(
-    "should Initialize Head",
+  runTestWhen(
+    head.tag === "Idle",
+    "Initialize Head",
     async function () {
       const result = await hydra.initialize(true);
       expect(result).to.exist;
       console.log("Head initialization result", result);
       hydra.waitForHeadState("Initial", 180000);
     },
-    2000000,
+    { timeout: 2000000 },
   );
 
-  test.runIf(head.state === "Final")(
-    "should re-Initialize Head",
-    async function () {
-      const result = await hydra.initialize(true);
-      expect(result).to.exist;
-      console.log("Head initialization result", result);
-      hydra.waitForHeadState("Initial", 180000);
-    },
-    2000000,
-  );
-
-  it("should query Protocol Parameters", async () => {
+  runTest("query Protocol Parameters", async () => {
     const protocolParams: CommonProtocolParameters = await hydra.queryProtocolParameters();
     expect(protocolParams).to.exist;
     expect(protocolParams.txFeeFixed).to.exist;
   });
 
-  it("should query UTxO by Address", async () => {
+  runTest("query UTxO by Address", async () => {
     console.log('Wallet Address : "' + walletAddress + '"');
     const utxosByAddress: UTxO[] = await hydra.queryUTxOByAddress(walletAddress);
     expect(utxosByAddress).to.be.an("array");
   });
 
-  it("should query UTxO by TxIn if UTxOs are available", async () => {
+  runTest("query UTxO by TxIn", async () => {
     const utxosByTxIn = await hydra.queryUTxOByTxIn(randomBytes(32).toString("hex") + "#0");
     expect(utxosByTxIn).to.be.an("array");
   });
 
-  it.runIf(head.state == "Initial")(
-    "should attempt to Commit UTxOs",
+  runTestWhen(
+    head.tag === "Initial" || head.tag === "Open",
+    "Commit UTxOs",
     async () => {
       if (nodeAddr) {
         const nodeUtxos = await hydra.l1Api.queryUTxOByAddress(nodeAddr);
@@ -112,80 +131,74 @@ describe("KuberHydraApiProvider Operations", async () => {
       console.log("Submitted Commit transaction :" + commitResult.hash);
       console.log("Waiting up to  280 secs for confirmation ...");
 
-      const waitedDuration = await hydra.l1Api.waitForUtxoConsumption(selectedUtxos[0].txIn, 280000);
-
-      console.log("Transaction Confirmed");
-      await hydra.waitForHeadState("Open", 280000 - 30000 - waitedDuration, true);
+      await hydra.l1Api.waitForUtxoConsumption(selectedUtxos[0].txIn, 280000);
     },
-    320000,
+    { timeout: 320000 },
   );
 
-  it("Should query commits", async () => {
+  runTest("query commits", async () => {
     const response = await hydra.queryCommits();
     console.log("Query Commits:", response);
     expect(response).to.be.an("array");
   });
 
-  it.skipIf(head.state != "Open")("When Head is open, attempt to Build and Submit Transaction", async () => {
+  runTestWhen(head.tag === "Open", "build and submit transaction", async () => {
     const transaction = {
-      outputs: [{ address: walletAddress, value: { lovelace: "3A" } }],
+      outputs: [
+        { address: walletAddress, value: "3A" },
+        { address: walletAddress, value: "3A" }
+      ],
       changeAddress: walletAddress,
     };
-    try {
-      const builtTx = await hydra.buildTx(transaction, true);
-      expect(builtTx).to.exist;
-      expect(builtTx.cborHex).to.exist;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        expect(error.message).to.include("Head is not open"); // Adjust based on actual error message
-      } else {
-        throw error;
-      }
-    }
+
+    const builtTx = await hydra.buildAndSignWithWallet(cip30Wallet, transaction);
+    expect(builtTx).to.exist;
+    await hydra.submitTx(builtTx.updatedTxBytes.toString('hex'))
+   
   });
 
-it.skipIf(["Closed", "Final", "Initial"].includes(head.state))("should attempt to Decommit UTxOs", async () => {
+  runTestWhen(["Closed", "Initial"].includes(head.tag), "attempt to Decommit UTxOs", async () => {
+    const commits = await hydra.queryCommits();
 
-  const commits = await hydra.queryCommits();
-
-  // Filter the commits of current wallet
-  const filteredEntries = Object.entries(commits).filter(
-    ([utxoId, commit]: [string, any]) => commit.address === walletAddress
-  ).map(x => x[0])
-
-
-  if (filteredEntries.length === 0) {
-    console.warn("No UTxOs found for the given wallet address.");
-    return;
-  }
-  const utxoIdsToDecommit = filteredEntries[0]
+    // Filter the commits of current wallet
+    const filteredEntries = Object.entries(commits).filter(
+      ([utxoId, commit]: [string, any]) => commit.address === walletAddress
+    ).map(x => x[0])
 
 
-  // Decommit first utxo in the commit list.
-  const decommitResult = await hydra.decommit({ utxos: [utxoIdsToDecommit] }, true, true);
-  console.log("decommitResult", decommitResult);
-});
+    if (filteredEntries.length === 0) {
+      console.warn("No UTxOs found for the given wallet address.");
+      return;
+    }
+    const utxoIdsToDecommit = filteredEntries[0]
 
-  it.skipIf(["Closed", "Final", "Initial"].includes(head.state))("should Close Head", async () => {
+
+    // Decommit first utxo in the commit list.
+    const decommitResult = await hydra.decommit({ utxos: [utxoIdsToDecommit] }, true, true);
+    console.log("decommitResult", decommitResult);
+  });
+
+  runTestWhen(head.tag == "Open", "Close Head", async () => {
     await hydra.close(true);
     await hydra.waitForHeadState("Closed", 180000, true);
-  });
+  }, { timeout: 200000 });
 
-  it.runIf(head.state === "Closed")("should attempt to Contest", async () => {
+  runTestWhen((head.tag === "Closed" && !head.contents.readyToFanoutSent), "attempt to Contest", async () => {
     const contestResult = await hydra.contest(true);
     console.log("contestResult", contestResult);
   });
 
-  it.runIf(head.state == "Closed")("should Fanout Head", async () => {
+  runTestWhen(head.contents.readyToFanoutSent, "Fanout Head", async () => {
     const fanoutResult = await hydra.fanout(true);
     console.log("Fanout Result", fanoutResult);
-    await hydra.waitForHeadState("Final", 180000, true);
-  });
+    await hydra.waitForHeadState("Idle", 180000, true);
+  }, { timeout: 200000 });
 
-  it.skip("should attempt to Abort)", async () => {
+  // always skip this
+  runTestWhen(false,"attempt to Abort", async () => {
     const abortResult = await hydra.abort(true);
     console.log("AbortResult", abortResult);
     await hydra.waitForHeadState("Idle", 180000, true);
-  }, 200000);
+  }, { timeout: 200000 });
 
 });

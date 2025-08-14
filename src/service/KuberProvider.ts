@@ -4,6 +4,7 @@ import { Output, HexString, TxWitnessSet } from "libcardano/cardano/serializatio
 import { TxInput, UTxO } from "libcardano/cardano/serialization/txinout";
 import { Cip30, Cip30Provider, Cip30ProviderWrapper } from "libcardano-wallet/cip30";
 import { cborBackend } from "cbor-rpc";
+import { SignTxResult } from "libcardano-wallet/cip30/types";
 
 export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvider {
   abstract submitTx(tx: HexString): Promise<any>;
@@ -103,11 +104,7 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
-  ): Promise<{
-    newWitnesses: TxWitnessSet;
-    newWitnessesBytes: Buffer;
-    updatedTx: any[];
-  }> {
+  ): Promise<SignTxResult> {
     const cip30: Cip30Provider = (cip30OrProvider as Cip30Provider).toProtableCip30
       ? (cip30OrProvider as Cip30Provider)
       : new Cip30ProviderWrapper(cip30OrProvider as Cip30);
@@ -120,7 +117,7 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
-  ): Promise<any> {
+  ): Promise<HexString> {
     const signed = await this.buildAndSignWithWallet(
       cip30OrProvider,
       buildRequest,

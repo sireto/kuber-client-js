@@ -10,6 +10,6 @@ export default defineConfig({
       'src/': new URL('./src/', import.meta.url).pathname,
     },
     reporters: ['default', 'html'],
-    outputFile: 'test-report.html'
+    outputFile: 'reports/index.html'
   },
 });

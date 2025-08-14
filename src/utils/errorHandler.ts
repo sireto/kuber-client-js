@@ -61,7 +61,7 @@ export async function handleApiError<T>(
         errorMessage = new APIError(
           "Error making Request",
           ErrorStatusCodes[error.code as keyof typeof ErrorStatusCodes] || 500,
-          { url: error.request._currentUrl },
+          { url: error.request?._currentUrl },
         );
       }
 
@@ -122,7 +122,7 @@ const logError = (errorMessage: APIError, error: any, log: string, attempt: numb
     console.log(
       `${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed: Request sent but no response received. [ERROR]: ${
         error.code
-      }. ${error.request._currentUrl ? `Request URL: ${error.request._currentUrl}` : ""}`,
+      }. ${error.request?._currentUrl ? `Request URL: ${error.request._currentUrl}` : ""}`,
     );
   } else {
     console.log(`${log} ❌ Attempt ${attempt}/${maxRetries + 1} failed: Error:`, error.message);

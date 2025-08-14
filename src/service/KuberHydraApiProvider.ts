@@ -7,8 +7,8 @@ import { HexString, UTxO } from "libcardano/cardano/serialization";
 import { cborBackend } from "cbor-rpc";
 import { KuberProvider } from "./KuberProvider";
 import { KuberApiProvider } from "./KuberApiProvider";
+import {HydraHeadState,HydraHead} from "../utils/hydraTypes"
 
-type HydraHeadState = "Initial" | "Idle" | "Closed" | "Contested" | "Open" | "Final";
 export class KuberHydraApiProvider extends KuberProvider {
   axios: AxiosInstance;
   retry?: RetryConfig;
@@ -44,6 +44,10 @@ export class KuberHydraApiProvider extends KuberProvider {
   async queryProtocolParameters(): Promise<CommonProtocolParameters> {
     const request = `/hydra/query/protocol-parameters`;
     return await get(this.axios, "KuberHydraService.queryProtocolParameters", request, this.retry);
+  }
+  async queryHead(): Promise<HydraHead>{
+    const request = `/hydra/query/head`;
+    return await get(this.axios, "KuberHydraService.queryHead", request, this.retry);
   }
 
   async queryHeadState(): Promise<{ state: HydraHeadState }> {
@@ -96,14 +100,12 @@ export class KuberHydraApiProvider extends KuberProvider {
   }
 
   async submitTx(cborString: HexString): Promise<CommonTxObject> {
-    const request = `/api/v1/tx/submit`;
+    const request = `/hydra/submit`;
     const hasWitness = Object.keys(cborBackend.decode(Buffer.from(cborString, "hex"))[1]).length != 0;
     const parsedKuberSubmitObject = {
-      tx: {
         cborHex: cborString,
         type: hasWitness ? "Witnessed Tx ConwayEra" : "Unwitnessed Tx ConwayEra",
         description: "",
-      },
     };
     return await post(this.axios, "KuberApiProvider.submitTx", request, parsedKuberSubmitObject, this.retry);
   }

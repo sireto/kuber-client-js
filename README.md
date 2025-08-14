@@ -1,6 +1,8 @@
 Kuber-Client
 =====================
-Library for querying, building and submitting transactions on cardano blockchain via `kuber-server`. Provides Unified  interface that works on web browsers, Node.js applications, and even with `kuber-hydra` server.
+Library for interacting with cardano wallet and blockchain via `kuber-server`. 
+
+Kuber-Client Provides Unified  interfce that works on web browsers, Node.js applications, and even with `kuber-hydra` server.
 
 With kuber-client, you can:
 - Query utxos, prototol parameters, time-slot information

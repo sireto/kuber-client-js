@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "kuber-client": "3.3.0"
+    "kuber-client": "3.3.1"
   },
   "devDependencies": {
     "tsx": "^4.20.3",

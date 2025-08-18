@@ -2140,10 +2140,10 @@ just-diff@^6.0.0:
   resolved "https://registry.yarnpkg.com/just-diff/-/just-diff-6.0.2.tgz#03b65908543ac0521caf6d8eb85035f7d27ea285"
   integrity sha512-S59eriX5u3/QhMNq3v/gm8Kd0w8OS6Tz2FS1NG4blv+z0MuQcBRJyFWjdovM0Rad4/P4aUPFtnkNjMjyMlMSYA==
 
-libcardano-wallet@2.2.13:
-  version "2.2.13"
-  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-2.2.13.tgz#0ff3cd3e3d40566a714fb97e01eab5d27b072a28"
-  integrity sha512-saRYczUtHrk5dLhFI/FTkKPp9L1+02Gd1ySThQhmYjNoYgvLz5Za7xRGA2MsbrywnA77HrSxNGNa7/7m5KrJ1g==
+libcardano-wallet@2.2.14:
+  version "2.2.14"
+  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-2.2.14.tgz#a2db349435c59768b00be702ba914684e554a022"
+  integrity sha512-COoZh0qbVdq7Kz+u6tP+8zqz1T7RLN0Wfq9QIwyjbJinPBPg6rHjU4S6mwHqZK8ASbR3mxQBEDtIrjGbehIlBw==
   dependencies:
     "@cardano-sdk/crypto" "^0.1.32"
     "@noble/curves" "^1.9.0"

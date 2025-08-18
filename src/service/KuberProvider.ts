@@ -2,9 +2,8 @@ import { QueryAPIProvider, SubmitAPIProvider } from "libcardano-wallet";
 import { CommonProtocolParameters, CommonTxObject } from "libcardano-wallet/utils/types";
 import { Output, HexString, TxWitnessSet } from "libcardano/cardano/serialization";
 import { TxInput, UTxO } from "libcardano/cardano/serialization/txinout";
-import { Cip30, Cip30Provider, Cip30ProviderWrapper } from "libcardano-wallet/cip30";
+import { Cip30, Cip30Provider, Cip30ProviderWrapper, SignTxResult } from "libcardano-wallet/cip30";
 import { cborBackend } from "cbor-rpc";
-import { SignTxResult } from "libcardano-wallet/cip30/types";
 
 export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvider {
   abstract submitTx(tx: HexString): Promise<any>;

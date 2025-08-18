@@ -39,7 +39,7 @@
     "axios": "^1.9.0",
     "buffer": "^6.0.3",
     "libcardano": "2.2.8",
-    "libcardano-wallet": "2.2.13"
+    "libcardano-wallet": "2.2.14"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",

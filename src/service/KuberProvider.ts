@@ -117,14 +117,15 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
-  ): Promise<HexString> {
+  ): Promise<SignTxResult> {
     const signed = await this.buildAndSignWithWallet(
       cip30OrProvider,
       buildRequest,
       autoAddCollateral,
       estimatedSpending,
     );
-    return cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString("hex"));
+    await cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString("hex"));
+    return signed
   }
 
   /**

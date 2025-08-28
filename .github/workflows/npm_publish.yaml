@@ -6,13 +6,16 @@ on:
       - 'v*.*.*'  # Adjust the tag pattern as needed
   workflow_dispatch:  # Allows manual triggering
 
+permissions:
+  deployments: write
+  packages: write
+  repository-projects: read
+  contents: read
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3

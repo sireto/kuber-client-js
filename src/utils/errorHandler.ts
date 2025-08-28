@@ -145,27 +145,24 @@ export class APIError extends Error {
     // Restore prototype chain (important for instanceof checks)
     Object.setPrototypeOf(this, APIError.prototype);
   }
+    get parsedData(): any {
+    if (typeof this.data === "string") {
+      try {
+        return JSON.parse(this.data);
+      } catch (e) {
+        return this.data; // Return raw string if parsing fails
+      }
+    }
+    return this.data;
+  }
 }
 
 export class L1TxSubmitError extends APIError {
-  public rawData: any;
 
-  constructor(message: string, status: number, data: any) {
-    super(message, status, { data: typeof data === "string" ? data : JSON.stringify(data) });
+  constructor(message: string, status: number, data: string) {
+    super(message, status, {data});
     this.name = "L1TxSubmitError";
-    this.rawData = data; // Store the raw data
     Object.setPrototypeOf(this, L1TxSubmitError.prototype);
-  }
-
-  get parsedData(): any {
-    if (typeof this.rawData === "string") {
-      try {
-        return JSON.parse(this.rawData);
-      } catch (e) {
-        return this.rawData; // Return raw string if parsing fails
-      }
-    }
-    return this.rawData;
   }
 }
 

@@ -11,6 +11,7 @@
     "publish": "npm run build && cd ./dist && npm publish",
     "benchmark": "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
     "test": "vitest run --coverage",
+    "test:all": "tsx scripts/test-helpers/run-tests-with-cluster-reset.ts",
     "version": "npm version --no-git-tag-version",
     "patch": "npm version patch --no-git-tag-version && npm run publish",
     "minorVersion": "npm version minor --no-git-tag-version",
@@ -39,7 +40,7 @@
     "axios": "^1.9.0",
     "buffer": "^6.0.3",
     "libcardano": "2.2.8",
-    "libcardano-wallet": "2.2.13"
+    "libcardano-wallet": "2.2.14"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",

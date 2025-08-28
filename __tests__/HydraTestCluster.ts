@@ -60,12 +60,14 @@ export class HydraTestCluster {
 
 
   private async transitionIdleToInitial(hydra: KuberHydraApiProvider): Promise<void> {
-    console.log(`Transitioning cluster: From Idle to Initial`);
+    console.log(`[Cluster Transition] from: Idle to: Initial`)
     await hydra.initialize(true);
     await hydra.waitForHeadState("Initial", 180000);
   }
 
   private async transitionInitialToOpen(): Promise<void> {
+    console.log(`[Cluster Transition] from: Initial to: Open`)
+
     for (const participant of this.participants) {
       const hydra = participant.getKuberHydraApiProvider();
       const cip30Wallet = await participant.getCip30Wallet();
@@ -101,24 +103,44 @@ export class HydraTestCluster {
       await hydra.l1Api.submitTx(signResult.updatedTxBytes.toString("hex"));
       await hydra.l1Api.waitForUtxoConsumption(selectedUtxos[0].txIn, 280000, true);
     }
+    this.participants[0].getKuberHydraApiProvider().waitForHeadState('Open',120000)
+    
   }
 
   private async transitionOpenToClose(hydra: KuberHydraApiProvider): Promise<void> {
-    console.log(`Transitioning cluster: From Open to Close`);
+    console.log(`[Cluster Transition] from: Open to: Closed`)
     await hydra.close(true);
     await hydra.waitForHeadState("Closed", 180000, true);
   }
 
   private async transitionClosedToFanoutReady(hydra: KuberHydraApiProvider): Promise<void> {
-    console.log(`Transitioning cluster: From Closed to FanoutReady`);
-    await hydra.waitWhile((currentHead) => {
-      console.log("Waiting for Fanout to be ready contestationDeadline: ", currentHead.contents.contestationDeadline, " current date:", Date.now());
-      return currentHead.contents.readyToFanoutSent == true;
-    }, 600000);
+    console.log(`[Cluster Transition] from: Closed to: FanoutReady`);
+    const head = await hydra.queryHead();
+    const deadline = new Date(head.contents.contestationDeadline);
+    const target = deadline.getTime() + 3 * 60 * 1000;          // +3 min
+    const now = Date.now();
+    const waitMs = Math.max(0, target - now);                   // ms until deadline+3 min
+    const waitSec = Math.ceil(waitMs / 1000);                   // seconds, rounded up
+
+    console.log(
+      `ContestationDeadline: ${deadline.toISOString()}, ` +
+      `Current date: ${new Date(now).toISOString()}, ` +
+      `Waiting until: ${new Date(target).toISOString()}, ` +
+      `waitSec: ${waitSec})`
+    );
+
+    await hydra.waitWhile(
+      (currentHead) => {
+        return currentHead.contents.readyToFanoutSent == true;
+      },
+      waitMs
+    );
+
+    console.log(`[Cluster Transition] Transition closed→FanoutReady completed`);
   }
 
   private async transitionFanoutToInitial(hydra: KuberHydraApiProvider): Promise<void> {
-    console.log(`Fanning out head, then initializing`);
+    console.log(`[Cluster Transition] from: FanoutReady to: Initial`)
     await hydra.fanout(true);
     await hydra.waitForHeadState("Initial", 180000);
   }
@@ -134,6 +156,8 @@ export class HydraTestCluster {
     console.log(`Head is already in Initial state for ${participantUrl}`);
     return;
   }
+  console.log(`[Cluster Reset] from: ${head.tag} to: Initial`)
+
 
     if (head.tag === "Idle") {
       await this.transitionIdleToInitial(hydra);
@@ -155,27 +179,33 @@ export class HydraTestCluster {
     let head = await hydra.queryHead();
     const participantUrl = participant.getKuberHydraUrl();
 
+
     if (head.tag === "Open") {
       console.log(`Head is already in Open state for ${participantUrl}`);
       return;
     }
+    console.log(`[Cluster Reset] from: ${head.tag} to: Open`)
+
+    if (head.tag === "Closed") {
+      await this.transitionClosedToFanoutReady(hydra);
+      await this.transitionFanoutToInitial(hydra);
+      head = await hydra.queryHead();
+    }
 
     if (head.tag === "Idle") {
       await this.transitionIdleToInitial(hydra);
-      head = await hydra.queryHead(); // Re-query head state
-    } else if (head.tag === "Closed") {
-      await this.transitionClosedToFanoutReady(hydra);
-      await this.transitionFanoutToInitial(hydra);
-      head = await hydra.queryHead(); // Re-query head state
-    }
+      head = await hydra.queryHead();
 
+    }
     if (head.tag === "Initial") {
       await this.transitionInitialToOpen();
-    } else {
+      this.participants[0].getKuberHydraApiProvider().waitForHeadState("Open", 180000, true);
+      return
+    }
+    else {
       console.warn(`Could not transition to Open state for ${participantUrl}. Current state: ${head.tag}`);
       throw Error("Missing logic to transition from " + head.tag + " to Open");
     }
-    this.participants[0].getKuberHydraApiProvider().waitForHeadState("Open", 180000, true);
   }
 
   public async resetClusterToClosedState(options?: { contested?: boolean, fanoutReady?: boolean }): Promise<void> {
@@ -185,6 +215,7 @@ export class HydraTestCluster {
     const participantUrl = participant.getKuberHydraUrl();
 
     if (head.tag === "Closed") {
+      console.log(`[Cluster Reset] from: ${head.tag} to: Closed`)
       console.log(`Head is already in Closed state for ${participantUrl}`);
       if (options?.contested) {
         if (head.contents.readyToFanoutSent) {
@@ -198,8 +229,7 @@ export class HydraTestCluster {
       if (options?.fanoutReady) {
         if (!head.contents.readyToFanoutSent) {
           await this.transitionClosedToFanoutReady(hydra);
-          const result = await hydra.fanout(true);
-          console.log("fanout result", result);
+          return
         } else { // already in ready to fanout state
           console.log("Already ready to fanout");
           return;
@@ -214,7 +244,7 @@ export class HydraTestCluster {
 
     // Ensure it's in Open state first
     if (head.tag !== "Open") {
-      console.log(`Transitioning to Open state before closing for ${participantUrl}`);
+      console.log(`[Cluster Reset] from: ${head.tag} to: Closed, Start by resetting to Open`)
       await this.resetClusterToOpenState();
       head = await hydra.queryHead(); // Re-query head state after transition
     }

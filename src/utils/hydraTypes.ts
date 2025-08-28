@@ -71,17 +71,64 @@ export interface ContentParameters {
   parties: Party[];
 }
 
+export interface MultiSignature {
+  multiSignature: string[];
+}
+
+export interface Snapshot {
+  confirmed: unknown[];
+  headId: string;
+  number: number;
+  utxo: Record<string, UTxOEntry>;
+  utxoToCommit?:  Record<string, UTxOEntry>;
+  utxoToDecommit?:  Record<string, UTxOEntry>;
+  version: number;
+}
+
+export interface CoordinatedConfirmedSnapshot {
+  signatures: MultiSignature;
+  snapshot: Snapshot;
+  tag: string;
+}
+
+export interface SeenSnapshot {
+  lastSeen: number;
+  tag: string;
+}
+
+export interface PendingDeposit {
+  created: string;
+  deadline: string;
+  deposited: Record<string, UTxOEntry>;
+  headId: string;
+  status: string;
+}
+
+export interface CoordinatedHeadState {
+  allTxs: Record<string, unknown>;
+  confirmedSnapshot: CoordinatedConfirmedSnapshot;
+  currentDepositTxId: null | string;
+  decommitTx: null | CommonTxObject;
+  localTxs: unknown[];
+  localUTxO: Record<string, UTxOEntry>;
+  pendingDeposits: Record<string, PendingDeposit>;
+  seenSnapshot: SeenSnapshot;
+  version: number;
+}
+
 export interface Contents {
   chainState: ChainState;
   committed?: Record<string, Record<string, UTxOEntry>>;
-  confirmedSnapshot: ConfirmedSnapshot;
-  contestationDeadline: string;
+  confirmedSnapshot?: CoordinatedConfirmedSnapshot; // Changed to CoordinatedConfirmedSnapshot
+  contestationDeadline?: string;
   headId: string;
   headSeed: string;
   parameters: ContentParameters;
   pendingCommits?: Party[];
-  readyToFanoutSent: boolean;
-  version: number;
+  readyToFanoutSent?: boolean;
+  version?: number;
+  coordinatedHeadState?: CoordinatedHeadState;
+  currentSlot?: number;
 }
 
 export interface HydraHead {

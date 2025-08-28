@@ -152,6 +152,7 @@ export class KuberHydraApiProvider extends KuberProvider {
         }
 
         if (headState.state === expectedState) {
+          console.log("Reached state:"+headState.state)
           return Date.now() - start;
         }
       } catch (err: any) {
@@ -174,6 +175,8 @@ export class KuberHydraApiProvider extends KuberProvider {
    * Waits until a condition is met by repeatedly polling the HydraHead.
    *
    * @param predicate - A function that takes a HydraHead and returns true if the condition is met.
+   *                    If the function returns false, the wait continues. 
+   *                    If the function returns true, the wait ends.
    * @param timeoutMs - Timeout in milliseconds (default: 80000ms).
    * @param pollIntervalMs - Polling interval in milliseconds (default: 4000ms).
    * @returns A Promise that resolves when the predicate returns true, or rejects on timeout.

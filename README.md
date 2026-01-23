@@ -39,11 +39,12 @@ $ npm install kuber-client
 This example demonstrates how to use `kuber-client` in a browser environment with a CIP-30 compliant wallet like Nami or Eternl.
 
 ```js
-import {Kuber} from "kuber-client";
-import {BrowserCardanoExtension, Cip30ShelleyWallet} from "kuber-client/browser";
+import {KuberApiProvider} from "kuber-client";
+import {BrowserCardanoExtension} from "kuber-client/browser";
+import {Cip30ShelleyWallet} from "@libcardano/wallet"
 
 async function donate(amount) {
-    const kuber = new Kuber('http://localhost:8081');
+    const kuber = new KuberApiProvider('http://localhost:8081',apiKey="your-api_ky");
     const providers = BrowserCardanoExtension.list();
 
     if (!providers) {

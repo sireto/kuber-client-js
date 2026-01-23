@@ -14,8 +14,11 @@ export class KuberApiProvider extends KuberProvider {
 
   constructor(kuberApiUrl: string, apiKey?: string, retry?: RetryConfig) {
     super();
-    const cofig = { baseURL: kuberApiUrl, apiKey };
-    this.axios = axios.create(cofig);
+    const config: any = { baseURL: kuberApiUrl };
+    if (apiKey) {
+      config.headers = { "api-key": apiKey };
+    }
+    this.axios = axios.create(config);
     this.retry = retry;
   }
 

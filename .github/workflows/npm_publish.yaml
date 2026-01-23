@@ -6,10 +6,16 @@ on:
       - 'v*.*.*'  # Adjust the tag pattern as needed
   workflow_dispatch:  # Allows manual triggering
 
+permissions:
+  deployments: write
+  packages: write
+  repository-projects: read
+  contents: read
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,6 +24,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
     
       - name: Cache Yarn dependencies
         uses: actions/cache@v3
@@ -32,12 +39,26 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - name: Get tag version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Read package.json version
+        id: read_package_version
+        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version if mismatch
+        if: steps.get_version.outputs.VERSION != steps.read_package_version.outputs.PACKAGE_VERSION
+        run: |
+          echo "Tag version ${{ steps.get_version.outputs.VERSION }} does not match package.json version ${{ steps.read_package_version.outputs.PACKAGE_VERSION }}. Updating package.json."
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+        
       - name: Build project
         run: yarn build
-
-      - name: Set up .npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.CARDANOPI_NPM_TOKEN }}" > .npmrc
+        
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --access public
         working-directory: ./dist

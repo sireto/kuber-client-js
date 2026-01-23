@@ -1,3 +1,5 @@
+import { CommonTxObject } from "libcardano-wallet";
+
 export type HydraHeadState = "Initial" | "Idle" | "Closed" | "Contested" | "Open";
 
 export type ScriptData =
@@ -69,18 +71,75 @@ export interface ContentParameters {
   parties: Party[];
 }
 
+export interface MultiSignature {
+  multiSignature: string[];
+}
+
+export interface Snapshot {
+  confirmed: unknown[];
+  headId: string;
+  number: number;
+  utxo: Record<string, UTxOEntry>;
+  utxoToCommit?:  Record<string, UTxOEntry>;
+  utxoToDecommit?:  Record<string, UTxOEntry>;
+  version: number;
+}
+
+export interface CoordinatedConfirmedSnapshot {
+  signatures: MultiSignature;
+  snapshot: Snapshot;
+  tag: string;
+}
+
+export interface SeenSnapshot {
+  lastSeen: number;
+  tag: string;
+}
+
+export interface PendingDeposit {
+  created: string;
+  deadline: string;
+  deposited: Record<string, UTxOEntry>;
+  headId: string;
+  status: string;
+}
+
+export interface CoordinatedHeadState {
+  allTxs: Record<string, unknown>;
+  confirmedSnapshot: CoordinatedConfirmedSnapshot;
+  currentDepositTxId: null | string;
+  decommitTx: null | CommonTxObject;
+  localTxs: unknown[];
+  localUTxO: Record<string, UTxOEntry>;
+  pendingDeposits: Record<string, PendingDeposit>;
+  seenSnapshot: SeenSnapshot;
+  version: number;
+}
+
 export interface Contents {
   chainState: ChainState;
-  confirmedSnapshot: ConfirmedSnapshot;
-  contestationDeadline: string;
+  committed?: Record<string, Record<string, UTxOEntry>>;
+  confirmedSnapshot?: CoordinatedConfirmedSnapshot; // Changed to CoordinatedConfirmedSnapshot
+  contestationDeadline?: string;
   headId: string;
   headSeed: string;
   parameters: ContentParameters;
-  readyToFanoutSent: boolean;
-  version: number;
+  pendingCommits?: Party[];
+  readyToFanoutSent?: boolean;
+  version?: number;
+  coordinatedHeadState?: CoordinatedHeadState;
+  currentSlot?: number;
 }
 
 export interface HydraHead {
   contents?: Contents;
   tag: HydraHeadState;
+}
+export interface DecommitResult {
+  decommitTx: CommonTxObject;
+  headId: string;
+  seq: number;
+  tag: string;
+  timestamp: string;
+  utxoToDecommit: Record<string, UTxOEntry>;
 }

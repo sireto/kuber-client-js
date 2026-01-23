@@ -7,7 +7,7 @@ import { HexString, UTxO } from "libcardano/cardano/serialization";
 import { cborBackend } from "cbor-rpc";
 import { KuberProvider } from "./KuberProvider";
 import { KuberApiProvider } from "./KuberApiProvider";
-import {HydraHeadState,HydraHead} from "../utils/hydraTypes"
+import {HydraHeadState,HydraHead, DecommitResult} from "../utils/hydraTypes"
 
 export class KuberHydraApiProvider extends KuberProvider {
   axios: AxiosInstance;
@@ -89,9 +89,25 @@ export class KuberHydraApiProvider extends KuberProvider {
     return await get(this.axios, "KuberHydraService.getCommits", request, this.retry);
   }
 
-  async decommit(utxos: Commit, wait: boolean = false, submit: boolean = false) {
-    const request = `/hydra/decommit?wait=${wait}&&submit=${submit}`;
-    return await post(this.axios, "KuberHydraService.decommit", request, utxos, this.retry);
+  async decommit(tx:HexString, wait: boolean = false): Promise<DecommitResult> {
+    const request = `/hydra/decommit?wait=${wait}`;
+    const response = await post(this.axios, "KuberHydraService.decommit", request, {
+      cborHex: tx,
+      type: "Witnessed Tx ConwayEra",
+      description: ""
+    }, this.retry);
+    return {
+      ...response,
+      decommitTx: {
+        ...response.decommitTx,
+        hash: response.decommitTx.txId,
+      }
+    };
+  }
+
+  async createDecommitTx(txIn: string): Promise<CommonTxObject> {
+    const request = `/hydra/decommit?txin=${txIn.replace("#", encodeURIComponent("#"))}`;
+    return await get(this.axios, "KuberHydraService.createDecommitTx", request, this.retry);
   }
 
   async buildTx(tx: any, submit: boolean = false): Promise<CommonTxObject> {
@@ -136,6 +152,7 @@ export class KuberHydraApiProvider extends KuberProvider {
         }
 
         if (headState.state === expectedState) {
+          console.log("Reached state:"+headState.state)
           return Date.now() - start;
         }
       } catch (err: any) {
@@ -152,5 +169,36 @@ export class KuberHydraApiProvider extends KuberProvider {
     throw new Error(
       `Timeout: Head state did not reach "${expectedState}" within ${timeoutMs / 1000} seconds, current state is ${headState.state}.`,
     );
+  }
+
+  /**
+   * Waits until a condition is met by repeatedly polling the HydraHead.
+   *
+   * @param predicate - A function that takes a HydraHead and returns true if the condition is met.
+   *                    If the function returns false, the wait continues. 
+   *                    If the function returns true, the wait ends.
+   * @param timeoutMs - Timeout in milliseconds (default: 80000ms).
+   * @param pollIntervalMs - Polling interval in milliseconds (default: 4000ms).
+   * @returns A Promise that resolves when the predicate returns true, or rejects on timeout.
+   */
+  async waitWhile(
+    predicate: (head: HydraHead) => (boolean | Promise<boolean>),
+    timeoutMs: number = 80000,
+    pollIntervalMs: number = 4000,
+  ): Promise<void> {
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const head = await this.queryHead();
+        if (await Promise.resolve(predicate(head)) === true) {
+          return;
+        }
+      } catch (err: any) {
+        console.warn(`Error while querying HydraHead:`, err.message);
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+    throw new Error(`Timeout: Condition not met within ${timeoutMs / 1000} seconds.`);
   }
 }

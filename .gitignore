@@ -4,3 +4,7 @@
 /coverage
 /src/tests/keys
 /tests/benchmark/results
+/reports/
+/test-results/
+/test-reports/
+/*.log

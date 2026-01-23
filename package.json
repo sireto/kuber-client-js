@@ -1,6 +1,6 @@
 {
   "name": "kuber-client",
-  "version": "3.3.3",
+  "version": "3.3.6",
   "description": "Javascript client library for kuber server",
   "main": "src/index.ts",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",
@@ -11,6 +11,7 @@
     "publish": "npm run build && cd ./dist && npm publish",
     "benchmark": "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
     "test": "vitest run --coverage",
+    "test:all": "tsx scripts/test-helpers/run-tests-with-cluster-reset.ts",
     "version": "npm version --no-git-tag-version",
     "patch": "npm version patch --no-git-tag-version && npm run publish",
     "minorVersion": "npm version minor --no-git-tag-version",

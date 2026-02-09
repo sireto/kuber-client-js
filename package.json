@@ -12,6 +12,7 @@
     "benchmark": "npx tsx ./src/tests/benchmark/serialBenchmark.ts && npx tsx ./src/tests/benchmark/parallelBenchmark.ts",
     "test": "vitest run --coverage",
     "test:all": "tsx scripts/test-helpers/run-tests-with-cluster-reset.ts",
+    "doc:validate": "node scripts/validate-readme.js",
     "version": "npm version --no-git-tag-version",
     "patch": "npm version patch --no-git-tag-version && npm run publish",
     "minorVersion": "npm version minor --no-git-tag-version",

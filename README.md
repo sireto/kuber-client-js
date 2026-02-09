@@ -41,10 +41,9 @@ This example demonstrates how to use `kuber-client` in a browser environment wit
 ```js
 import {KuberApiProvider} from "kuber-client";
 import {BrowserCardanoExtension} from "kuber-client/browser";
-import {Cip30ShelleyWallet} from "@libcardano/wallet"
 
 async function donate(amount) {
-    const kuber = new KuberApiProvider('http://localhost:8081',apiKey="your-api_ky");
+    const kuber = new KuberApiProvider('http://localhost:8081',"your-api-key");
     const providers = BrowserCardanoExtension.list();
 
     if (!providers) {
@@ -53,29 +52,29 @@ async function donate(amount) {
     }
 
     let provider = providers[0];
-    const cip30WalletProvider = await provider.enable();
-    const wallet = new Cip30ShelleyWallet(kuber, kuber, cip30WalletProvider);
+    const wallet = await provider.enable();
+    
 
     console.info("Using Browser Wallet", {
-        name: wallet.name,
-        balance: (await wallet.calculateBalance()).multiAssetsUtf8()
+        name: provider.name,
+        balance: (await wallet.getBalance()).multiAssetsUtf8()
     });
 
-    return kuber.build({
+    return kuber.buildAndSignWithWallet(wallet,{
         outputs: [
             {
                 address: "addr1v9f4au6ux739r5kttd4208qerumrsh6mrenvcvq82e0rpwca3u2u6",
                 value: amount
             }
-        ],
-        changeAddress: await wallet.getChangeAddress()
+        ]
     }).then(tx => {
-        return wallet.signAndSubmit(tx);
+        return wallet.submitTx(tx.updatedTxBytes.toString("hex"));
     }).catch(e => {
         alert((e && e.message) || e);
     });
 }
 
+Promise.resolve(donate(5000000)); // or donate("5A")
 Promise.resolve(donate(5000000)); // or donate("5A")
 ```
 
@@ -84,33 +83,36 @@ Promise.resolve(donate(5000000)); // or donate("5A")
 This example shows how to use `kuber-client` in a Node.js environment to build a transaction.
 
 ```js
-const { Kuber, KuberApiProvider } = require("kuber-client");
+const { KuberApiProvider } = require("kuber-client");
 const { loadCrypto, Ed25519Key } = require("libcardano");
 const { ShelleyWallet, Cip30ShelleyWallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
+const { Network } = require("libcardano-wallet/cip30/types");
 
 async function main() {
     await loadCrypto();
 
-    const kuber = new KuberApiProvider('http://localhost:8081');
+    const kuber = new KuberApiProvider('http://localhost:8081',process.env.KUBER_API_KEY);
     const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
         JSON.parse(readFileSync("payment.skey", 'utf-8'))
     );
 
     const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
-    const cip30Wallet = new Cip30ShelleyWallet(kuber, kuber, shelleyWallet, 1);
+    const cip30Wallet = new Cip30ShelleyWallet(kuber, kuber, shelleyWallet, Network.Testnet);
 
-    const tx = await kuber.build({
+    const tx = await kuber.buildWithWallet(cip30Wallet,{
         outputs: [{
             address: "addr1v9f4au6ux739r5kttd4208qerumrsh6mrenvcvq82e0rpwca3u2u6",
             value: "2A"
         }],
-        changeAddress: await cip30Wallet.getChangeAddress()
     });
 
-    const signedTx = await cip30Wallet.signAndSubmit(tx);
+    const signedTx = await cip30Wallet.signTx(tx.cborHex);
+    await cip30Wallet.submitTx(signedTx.updatedTxBytes.toString("hex"));
     console.log("Transaction submitted:", signedTx);
 }
+
+Promise.resolve(main());
 
 Promise.resolve(main());
 ```
@@ -128,7 +130,7 @@ const { readFileSync } = require("fs");
 async function main() {
     await loadCrypto();
 
-    const hydra = new KuberHydraApiProvider("http://localhost:8081");
+    const hydra = new KuberHydraApiProvider("http://localhost:8081",process.env.KUBER_API_KEY);
     const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
         JSON.parse(readFileSync("example.sk", 'utf-8'))
     );
@@ -150,6 +152,9 @@ async function main() {
         }],
         changeAddress: await cip30Wallet.getChangeAddress()
     });
+    const signedTx = await cip30Wallet.signTx(tx.cborHex);
+    await cip30Wallet.submitTx(signedTx.updatedTxBytes.toString("hex"));
+    console.log("Transaction submitted:", signedTx);
 }
 
 Promise.resolve(main());

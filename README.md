@@ -34,7 +34,11 @@ $ npm install kuber-client
 
 ## Examples
 
-### [Client] Browser Example
+1. [Client Browser Example](#client-browser-example)
+2. [Backend CLI Example](#backend-cli-example)
+3. [Hydra Example](#hydra-example)
+
+### 1. [Client] Browser Example
 
 This example demonstrates how to use `kuber-client` in a browser environment with a CIP-30 compliant wallet like Nami or Eternl.
 
@@ -78,7 +82,7 @@ Promise.resolve(donate(5000000)); // or donate("5A")
 Promise.resolve(donate(5000000)); // or donate("5A")
 ```
 
-### [Backend] CLI Example
+### 2. [Backend] CLI Example
 
 This example shows how to use `kuber-client` in a Node.js environment to build a transaction.
 
@@ -117,7 +121,9 @@ Promise.resolve(main());
 Promise.resolve(main());
 ```
 
-### Hydra Example
+### 3. Hydra Example
+
+#### See full docs [here](https://dquadrant.github.io/kuber/hydra_docusaurus/docs/hydra-js-client/getting-started/)
 
 This example demonstrates how to use `kuber-client` to interact with a Hydra head.
 

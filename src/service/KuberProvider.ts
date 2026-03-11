@@ -1,8 +1,7 @@
 import { QueryAPIProvider, SubmitAPIProvider } from "libcardano-wallet";
 import { CommonProtocolParameters, CommonTxObject } from "libcardano-wallet/utils/types";
-import { Output, HexString, TxWitnessSet } from "libcardano/cardano/serialization";
-import { TxInput, UTxO } from "libcardano/cardano/serialization/txinout";
-import { Cip30, Cip30Provider, Cip30ProviderWrapper, SignTxResult } from "libcardano-wallet/cip30";
+import { Output, HexString, TxWitnessSet, TxInput, UTxO } from "libcardano/serialization";
+import { Cip30, Cip30Interface, Cip30ProviderWrapper, TxSignResult } from "libcardano-wallet";
 import { cborBackend } from "cbor-rpc";
 
 export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvider {
@@ -36,14 +35,14 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
    * @returns A new rejected Promise.
    */
   async buildWithWallet(
-    cip30OrProvider: Cip30 | Cip30Provider,
+    cip30OrProvider: Cip30Interface | Cip30,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
   ): Promise<CommonTxObject> {
-    const cip30: Cip30 = (cip30OrProvider as Cip30Provider).toProtableCip30
-      ? (cip30OrProvider as Cip30Provider).toProtableCip30()
-      : (cip30OrProvider as Cip30);
+    const cip30: Cip30Interface = (cip30OrProvider as Cip30).toProtableCip30
+      ? (cip30OrProvider as Cip30).toProtableCip30()
+      : (cip30OrProvider as Cip30Interface);
     const walletUtxos = await cip30.getUtxos();
     let selectedUtxos = walletUtxos;
 
@@ -99,31 +98,31 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
     return this.buildTx(buildRequest, false);
   }
   async buildAndSignWithWallet(
-    cip30OrProvider: Cip30 | Cip30Provider,
+    cip30OrProvider: Cip30Interface | Cip30,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
-  ): Promise<SignTxResult> {
-    const cip30: Cip30Provider = (cip30OrProvider as Cip30Provider).toProtableCip30
-      ? (cip30OrProvider as Cip30Provider)
-      : new Cip30ProviderWrapper(cip30OrProvider as Cip30);
+  ): Promise<TxSignResult> {
+    const cip30: Cip30 = (cip30OrProvider as Cip30).toProtableCip30
+      ? (cip30OrProvider as Cip30)
+      : new Cip30ProviderWrapper(cip30OrProvider as Cip30Interface);
 
     const built = await this.buildWithWallet(cip30OrProvider, buildRequest, autoAddCollateral, estimatedSpending);
     return cip30.signTx(built.cborHex, true);
   }
   async buildAndSubmitWithWallet(
-    cip30OrProvider: Cip30 | Cip30Provider,
+    cip30OrProvider: Cip30Interface | Cip30,
     buildRequest: Record<string, any>,
     autoAddCollateral = false,
     estimatedSpending?: number | bigint,
-  ): Promise<SignTxResult> {
+  ): Promise<TxSignResult> {
     const signed = await this.buildAndSignWithWallet(
       cip30OrProvider,
       buildRequest,
       autoAddCollateral,
       estimatedSpending,
     );
-    await cip30OrProvider.submitTx(cborBackend.encode(signed.updatedTx).toString("hex"));
+    await cip30OrProvider.submitTx(signed.transaction.toBytes().toString("hex"));
     return signed
   }
 

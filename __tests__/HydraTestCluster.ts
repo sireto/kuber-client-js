@@ -4,6 +4,7 @@ import { HydraTestParticipant } from './HydraTestParticipant';
 import { Value } from 'libcardano'; // Import Value
 import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
 import { HydraHeadState } from '../src/utils/hydraTypes';
+import type { TxSignResult } from 'libcardano-wallet';
 
 interface ParticipantConfig {
   httpUrl: string;
@@ -98,9 +99,9 @@ export class HydraTestCluster {
       }
       const txIn = selectedUtxos[0].txIn;
       const commitResult = await hydra.commit({ utxos: [`${txIn.txHash.toString("hex")}#${txIn.index}`] });
-      const signResult = await cip30Wallet.signTx(commitResult.cborHex);
+      const signResult: TxSignResult = await cip30Wallet.signTx(commitResult.cborHex);
 
-      await hydra.l1Api.submitTx(signResult.updatedTxBytes.toString("hex"));
+      await hydra.l1Api.submitTx(signResult.transaction.toBytes().toString("hex"));
       await hydra.l1Api.waitForUtxoConsumption(selectedUtxos[0].txIn, 280000, true);
     }
     this.participants[0].getKuberHydraApiProvider().waitForHeadState('Open',120000)

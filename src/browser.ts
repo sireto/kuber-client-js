@@ -1,4 +1,4 @@
-import { CardanoExtension, Cip30Provider, Cip30ProviderWrapper, CipExtension } from "libcardano-wallet/cip30";
+import { CardanoExtension, Cip30, Cip30ProviderWrapper, CipExtension } from "libcardano-wallet";
 
 declare global {
   interface Window {
@@ -8,7 +8,7 @@ declare global {
 
 export class BrowserCardanoExtension {
   apiVersion: string;
-  enable(options?: { extensions: CipExtension[] }): Promise<Cip30Provider> {
+  async enable(options?: { extensions: CipExtension[] }): Promise<Cip30> {
     return this.__provider.enable(options).then((instance) => new Cip30ProviderWrapper(instance));
   }
 
@@ -25,6 +25,18 @@ export class BrowserCardanoExtension {
     this.icon = provider.icon;
     this.name = provider.name;
     this.supportedExtensions = provider.supportedExtensions;
+  }
+  static getProviderByName(name: string): BrowserCardanoExtension | null {
+    const providers = BrowserCardanoExtension.list();
+    const provider = providers.find((x) => x.name === name);
+    return provider || null;
+  }
+  static getByWindowCardano(key:string): BrowserCardanoExtension {
+    const provider = window?.cardano?.[key];
+    if (!provider) {
+      throw new Error(`No provider found for key ${key}`);
+    }
+    return new BrowserCardanoExtension(provider);
   }
 
   static list(): BrowserCardanoExtension[] {

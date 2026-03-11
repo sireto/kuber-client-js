@@ -1,15 +1,21 @@
 import { readFileSync } from "fs";
 import { Value } from "libcardano";
-import { Cip30ShelleyWallet } from "libcardano-wallet";
+import { SimpleCip30Wallet } from "libcardano-wallet";
+import type { TxSignResult } from "libcardano-wallet";
 import { KuberHydraApiProvider } from "../src/service/KuberHydraApiProvider";
 import { CommonProtocolParameters } from "libcardano-wallet/utils/types";
-import { parseRawTransaction, parseTransaction, UTxO } from "libcardano/cardano/serialization";
+import { UTxO } from "libcardano/serialization";
 import { randomBytes } from "crypto";
 import { describe, beforeAll, expect, test } from "vitest";
 import { HydraTestCluster } from "./HydraTestCluster";
 import { APIError, L1TxSubmitError } from "src/utils/errorHandler";
 
-describe("KuberHydraApiProvider Operations", async () => {
+const shouldRunHydraTests = process.env.HYDRA_TESTS === "1";
+
+if (!shouldRunHydraTests) {
+  describe.skip("KuberHydraApiProvider Operations", () => {});
+} else {
+  describe("KuberHydraApiProvider Operations", async () => {
     const hydraCluster = new HydraTestCluster();
 
     hydraCluster.addParticipantConfig(
@@ -26,7 +32,7 @@ describe("KuberHydraApiProvider Operations", async () => {
 
 
   let hydra: KuberHydraApiProvider;
-  let cip30Wallet: Cip30ShelleyWallet;
+  let cip30Wallet: SimpleCip30Wallet;
   let walletAddress: string = ""; // Initialize with an empty string
   let nodeAddr = "";
   await hydraCluster.resetClusterToClosedState()
@@ -139,9 +145,9 @@ describe("KuberHydraApiProvider Operations", async () => {
         utxos: [`${txIn.txHash.toString("hex")}#${txIn.index}`],
       });
       console.log("Tx Being commited", commitResult);
-      const signResult = await cip30Wallet.signTx(commitResult.cborHex);
-      console.log("Signed Tx", signResult.updatedTxBytes.toString("hex"));
-      await hydra.l1Api.submitTx(signResult.updatedTxBytes.toString("hex"));
+      const signResult: TxSignResult = await cip30Wallet.signTx(commitResult.cborHex);
+      console.log("Signed Tx", signResult.transaction.toBytes().toString("hex"));
+      await hydra.l1Api.submitTx(signResult.transaction.toBytes().toString("hex"));
 
       console.log("Submitted Commit transaction :" + commitResult.hash);
       console.log("Waiting up to  360 secs for confirmation ...");
@@ -168,8 +174,8 @@ describe("KuberHydraApiProvider Operations", async () => {
 
     const builtTx = await hydra.buildAndSignWithWallet(cip30Wallet, transaction);
     expect(builtTx).to.exist;
-    await hydra.submitTx(builtTx.updatedTxBytes.toString('hex'))
-    const utxo=await hydra.queryUTxOByTxIn(parseTransaction(builtTx.updatedTx).hash.toString('hex')+'#0')
+    await hydra.submitTx(builtTx.transaction.toBytes().toString("hex"));
+    const utxo = await hydra.queryUTxOByTxIn(builtTx.transaction.hash().toString("hex") + "#0");
     console.log("utxo : ",utxo)
     expect(utxo.length).toBeGreaterThan(0)
   
@@ -207,11 +213,11 @@ describe("KuberHydraApiProvider Operations", async () => {
     console.log("Decommit Tx (un-signed):", decommitTx);
 
     // Sign the decommit transaction
-    const signResult = await cip30Wallet.signTx(decommitTx.cborHex);
-    console.log("Signed Decommit Tx:", signResult.updatedTxBytes.toString("hex"));
+    const signResult: TxSignResult = await cip30Wallet.signTx(decommitTx.cborHex);
+    console.log("Signed Decommit Tx:", signResult.transaction.toBytes().toString("hex"));
 
     // Submit the signed decommit transaction
-    const decommitResult = await hydra.decommit(signResult.updatedTxBytes.toString('hex'), false);
+    const decommitResult = await hydra.decommit(signResult.transaction.toBytes().toString("hex"), false);
 
     console.log("Decommit Result:", decommitResult);
     await hydra.waitForUtxoConsumption(utxos[0].txIn)
@@ -267,4 +273,5 @@ describe("KuberHydraApiProvider Operations", async () => {
     await hydra.waitForHeadState("Idle", 180000, true);
   }, { timeout: 1200000 });
 
-});
+  });
+}

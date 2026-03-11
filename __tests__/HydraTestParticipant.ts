@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Ed25519Key, loadCrypto } from 'libcardano';
-import { ShelleyWallet, Cip30ShelleyWallet } from 'libcardano-wallet';
+import { ShelleyWallet, SimpleCip30Wallet } from 'libcardano-wallet';
 import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
 import { Value } from 'libcardano';
 
@@ -12,7 +12,7 @@ export class HydraTestParticipant {
   private fundKey: Ed25519Key | null = null;
   private nodeKey: Ed25519Key | null = null;
   private kuberHydraApiProvider: KuberHydraApiProvider;
-  private cip30Wallet: Cip30ShelleyWallet | null = null;
+  private cip30Wallet: SimpleCip30Wallet | null = null;
   private walletAddress: string = '';
 
   constructor(httpUrl: string, fundKeyFile: string, nodeKeyFile: string) {
@@ -55,11 +55,11 @@ export class HydraTestParticipant {
     return this.httpUrl;
   }
 
-  public async getCip30Wallet(): Promise<Cip30ShelleyWallet> {
+  public async getCip30Wallet(): Promise<SimpleCip30Wallet> {
     if (!this.cip30Wallet) {
       await loadCrypto();
       const shelleyWallet = new ShelleyWallet(await this.getFundKey());
-      this.cip30Wallet = new Cip30ShelleyWallet(this.kuberHydraApiProvider, this.kuberHydraApiProvider, shelleyWallet, 0);
+      this.cip30Wallet = new SimpleCip30Wallet(this.kuberHydraApiProvider, this.kuberHydraApiProvider, shelleyWallet, 0);
       this.walletAddress = (await this.cip30Wallet.getChangeAddress()).toBech32();
     }
     return this.cip30Wallet;

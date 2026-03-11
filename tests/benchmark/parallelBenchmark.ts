@@ -8,15 +8,8 @@ import {
   writeBenchmarkResults,
 } from "./utils";
 import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
-import { Cip30ShelleyWallet } from "libcardano-wallet/cip30";
-import { ShelleyWallet } from "libcardano-wallet";
-type TxSignResponse = {
-  newWitnesses: TxWitnessSet;
-  newWitnessesBytes: Buffer;
-  updatedTx: any[];
-  updatedTxBytes: Buffer;
-};
-import { TxWitnessSet } from "libcardano/cardano/serialization/txWitnessSet";
+import { Cip30ShelleyWallet, ShelleyWallet } from "libcardano-wallet";
+import type { TxSignResult } from "libcardano-wallet";
 
 const runParallelSubmitBenchmarks = async () => {
   const kuberHydra = new KuberHydraApiProvider("http://172.31.6.1:8082");
@@ -38,9 +31,9 @@ const runParallelSubmitBenchmarks = async () => {
       const txCborHex = buildTxResponse.cborHex;
       const myWallet = await createHydraWallet(kuberHydra, testWalletSigningKey, 0);
 
-      const signature = (await timeAsync(`signTx`, () => myWallet.signTx(txCborHex), log)) as TxSignResponse;
+      const signature: TxSignResult = await timeAsync(`signTx`, () => myWallet.signTx(txCborHex), log);
 
-      signedTxHexes.push(signature.updatedTxBytes.toString("hex"));
+      signedTxHexes.push(signature.transaction.toBytes().toString("hex"));
       prepResults.push(log);
     } catch (error: any) {
       console.error(`Prep Run ${i + 1} failed:`, error.message);

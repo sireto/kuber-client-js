@@ -8,13 +8,7 @@ import {
   timeAsync,
   writeBenchmarkResults,
 } from "./utils";
-type TxSignResponse = {
-  newWitnesses: TxWitnessSet;
-  newWitnessesBytes: Buffer;
-  updatedTx: any[];
-  updatedTxBytes: Buffer;
-};
-import { TxWitnessSet } from "libcardano/cardano/serialization/txWitnessSet";
+import type { TxSignResult } from "libcardano-wallet";
 
 const runSerialBenchmarks = async () => {
   const results: Record<string, number>[] = [];
@@ -34,9 +28,13 @@ const runSerialBenchmarks = async () => {
 
       const txCborHex = buildTxResponse.cborHex;
 
-      const signature = (await timeAsync("signTx", () => myWallet.signTx(txCborHex), log)) as TxSignResponse;
+      const signature: TxSignResult = await timeAsync("signTx", () => myWallet.signTx(txCborHex), log);
 
-      await timeAsync("submitTx", () => hydra.l1Api.submitTx(signature.updatedTxBytes.toString("hex")), log);
+      await timeAsync(
+        "submitTx",
+        () => hydra.l1Api.submitTx(signature.transaction.toBytes().toString("hex")),
+        log,
+      );
 
       results.push(log);
     } catch (error: any) {

@@ -3,9 +3,9 @@ import { CommonProtocolParameters } from "libcardano-wallet/utils/types";
 import { get, post } from "../utils/http";
 import { cborBackend } from "cbor-rpc";
 import { RetryConfig } from "../utils/type";
-import { UTxO } from "libcardano/cardano/serialization/txinout";
+import { UTxO } from "libcardano/serialization";
 import { toUTxO } from "../utils/typeConverters";
-import { HexString } from "libcardano/cardano/serialization";
+import { HexString } from "libcardano/serialization";
 import { KuberProvider } from "./KuberProvider";
 
 export class KuberApiProvider extends KuberProvider {

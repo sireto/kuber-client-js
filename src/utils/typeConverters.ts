@@ -1,6 +1,5 @@
 import { BalanceResponse, UtxoDetails2, JsonValue } from "./type";
-import { ShelleyAddress } from "libcardano/cardano/serialization/address";
-import { Script, ScriptJSON } from "libcardano/cardano/serialization/plutusScript";
+import { ShelleyAddress, Script, ScriptJSON } from "libcardano/serialization";
 import {
   Output,
   PostAlonzoOutput,
@@ -11,7 +10,7 @@ import {
   valuetoObject,
   DatumOption,
   PlutusData,
-} from "libcardano/cardano/serialization";
+} from "libcardano/serialization";
 
 export function toUTxO(raw: BalanceResponse): UTxO[] {
   const stringToTxInput = (txInStr: string): TxInput => {

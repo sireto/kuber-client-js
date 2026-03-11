@@ -3,7 +3,7 @@ import { CommonProtocolParameters, CommonTxObject } from "libcardano-wallet/util
 import { Commit, RetryConfig } from "../utils/type";
 import { get, post } from "../utils/http";
 import { toUTxO } from "../utils/typeConverters";
-import { HexString, UTxO } from "libcardano/cardano/serialization";
+import { HexString, UTxO } from "libcardano/serialization";
 import { cborBackend } from "cbor-rpc";
 import { KuberProvider } from "./KuberProvider";
 import { KuberApiProvider } from "./KuberApiProvider";

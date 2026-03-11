@@ -1,4 +1,4 @@
-import { loadCrypto, Ed25519Key } from "libcardano";
+import { Ed25519Key } from "libcardano";
 import { ShelleyWallet,SimpleCip30Wallet } from "libcardano-wallet";
 import { readFileSync } from "fs";
 import { KuberHydraApiProvider } from "kuber-client";

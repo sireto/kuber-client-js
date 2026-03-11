@@ -1,4 +1,4 @@
-const { loadCrypto, Ed25519Key } = require("libcardano");
+const { Ed25519Key } = require("libcardano");
 const { ShelleyWallet,SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 const { KuberHydraApiProvider } = require("kuber-client");

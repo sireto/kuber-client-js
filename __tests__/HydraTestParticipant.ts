@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Ed25519Key, loadCrypto } from 'libcardano';
+import { Ed25519Key } from 'libcardano';
 import { ShelleyWallet, SimpleCip30Wallet } from 'libcardano-wallet';
 import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
 import { Value } from 'libcardano';

@@ -88,7 +88,7 @@ This example shows how to use `kuber-client` in a Node.js environment to build a
 
 ```js
 const { KuberApiProvider } = require("kuber-client");
-const { loadCrypto, Ed25519Key } = require("libcardano");
+const { Ed25519Key } = require("libcardano");
 const { ShelleyWallet, SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 const { Network } = require("libcardano-wallet/cip30/types");
@@ -126,7 +126,7 @@ This example demonstrates how to use `kuber-client` to interact with a Hydra hea
 
 ```js
 const { KuberHydraApiProvider } = require("kuber-client");
-const { loadCrypto, Ed25519Key } = require("libcardano");
+const { Ed25519Key } = require("libcardano");
 const { ShelleyWallet, SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 

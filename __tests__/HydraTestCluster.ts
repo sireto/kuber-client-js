@@ -209,7 +209,7 @@ export class HydraTestCluster {
     }
   }
 
-  public async resetClusterToClosedState(options?: { contested?: boolean, fanoutReady?: boolean }): Promise<void> {
+  public async resetClusterToClosedState(options?: { fanoutReady?: boolean }): Promise<void> {
     const participant = this.participants[0];
     const hydra = participant.getKuberHydraApiProvider();
     let head = await hydra.queryHead();
@@ -218,15 +218,6 @@ export class HydraTestCluster {
     if (head.tag === "Closed") {
       console.log(`[Cluster Reset] from: ${head.tag} to: Closed`)
       console.log(`Head is already in Closed state for ${participantUrl}`);
-      if (options?.contested) {
-        if (head.contents.readyToFanoutSent) {
-          console.log(`Fanouting head for ${participantUrl}`);
-          const result = await hydra.fanout(true);
-          console.log("fanout result", result);
-          this.resetClusterToClosedState({ contested: true });
-          return;
-        }
-      }
       if (options?.fanoutReady) {
         if (!head.contents.readyToFanoutSent) {
           await this.transitionClosedToFanoutReady(hydra);
@@ -235,7 +226,7 @@ export class HydraTestCluster {
           console.log("Already ready to fanout");
           return;
         }
-      } else if (!options?.contested && head.contents.readyToFanoutSent) {
+      } else if (head.contents.readyToFanoutSent) {
         await this.transitionFanoutToInitial(hydra);
         await this.resetClusterToOpenState();
       } else {

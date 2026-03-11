@@ -242,26 +242,6 @@ if (!shouldRunHydraTests) {
     }
   }, { timeout: 460000 });
 
-
-  // Contestation setup is technically complicated. It requires one of the 2 nodes to sign a snapshot then miss it.
-  // Hydra nodes also implement automatic contestation if they have newer state than the one in currently closed state.
-  // We only make sure that the contest command is sent.
-  runTestWhen((head.tag === "Closed" && !head.contents.readyToFanoutSent), "attempt to Contest", async () => {
-    try{
-      const contestResult = await hydra.contest(true);
-      console.log("contestResult", contestResult);
-
-      }catch( e ){
-        if (e instanceof APIError) {
-          console.log(e)
-          expect(e.parsedData.clientInput.tag).toBe('Contest')
-          return 
-      } else {
-          throw e;
-      }
-    }
-  });
-
   runTestWhen(head.tag === "Closed", "Fanout Head", async () => {
     await hydraCluster.resetClusterToClosedState({fanoutReady:true}) // this can take 15-20 mins
     

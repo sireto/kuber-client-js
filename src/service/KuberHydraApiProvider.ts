@@ -75,11 +75,6 @@ export class KuberHydraApiProvider extends KuberProvider {
     return await post(this.axios, "KuberHydraService.abort", request, null, this.retry);
   }
 
-  async contest(wait: boolean = false) {
-    const request = `/hydra/contest?wait=${wait}`;
-    return await post(this.axios, "KuberHydraService.contest", request, null, this.retry);
-  }
-
   async commit(utxos: Commit, submit: boolean = false): Promise<CommonTxObject> {
     const request = `/hydra/commit?submit=${submit}`;
     return await post(this.axios, "KuberHydraService.commit", request, utxos, this.retry);

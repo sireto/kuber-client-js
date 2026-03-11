@@ -1,4 +1,5 @@
 import { readFileSync } from "fs";
+import * as path from "path";
 import { Value } from "libcardano";
 import { SimpleCip30Wallet } from "libcardano-wallet";
 import type { TxSignResult } from "libcardano-wallet";
@@ -8,7 +9,6 @@ import { UTxO } from "libcardano/serialization";
 import { randomBytes } from "crypto";
 import { describe, beforeAll, expect, test } from "vitest";
 import { HydraTestCluster } from "./HydraTestCluster";
-import { APIError } from "src/utils/errorHandler";
 
 const shouldRunHydraTests = process.env.HYDRA_TESTS === "1";
 
@@ -16,18 +16,11 @@ if (!shouldRunHydraTests) {
   describe.skip("KuberHydraApiProvider Operations", () => {});
 } else {
   describe("KuberHydraApiProvider Operations", async () => {
-    const hydraCluster = new HydraTestCluster();
-
-    hydraCluster.addParticipantConfig(
-      "http://localhost:8081",
-      process.env.HOME + "/.cardano/preview/hydra-0/credentials/funds.sk",
-      process.env.HOME + "/.cardano/preview/hydra-0/credentials/node.sk"
-    );
-    hydraCluster.addParticipantConfig(
-      "http://localhost:8082",
-      process.env.HOME + "/.cardano/preview/hydra-1/credentials/funds.sk",
-      process.env.HOME + "/.cardano/preview/hydra-1/credentials/node.sk"
-    );
+    // Scan devnet folder to configure all 3 participants (alice, bob, carol)
+    const devnetPath = path.join(__dirname, '../../kuber-hydra/devnet');
+    const participantConfigs = HydraTestCluster.scanDevnetFolder(devnetPath,"localhost",8082);
+    const credentialsPath = path.join(devnetPath, 'credentials');
+    const hydraCluster = new HydraTestCluster({ participants: participantConfigs });
     const participant1 = hydraCluster.getParticipant(0)!;
 
 
@@ -69,8 +62,8 @@ if (!shouldRunHydraTests) {
     cip30Wallet = await participant1.getCip30Wallet();
     walletAddress = (await cip30Wallet.getChangeAddress()).toBech32();
     participant1.getNodeKey()
-    // Load node address for participant1
-    nodeAddr = readFileSync(process.env.HOME + "/.cardano/preview/hydra-0/credentials/node.addr").toString("utf-8").trim();
+    // Load node address for participant1 (alice) from devnet credentials folder
+    nodeAddr = readFileSync(path.join(credentialsPath, 'alice.addr')).toString("utf-8").trim();
     head = await hydra.queryHead();
 
   }, 20000);

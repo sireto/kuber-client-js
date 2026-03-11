@@ -1,5 +1,7 @@
 
 import { error } from 'console';
+import * as fs from 'fs';
+import * as path from 'path';
 import { HydraTestParticipant } from './HydraTestParticipant';
 import { Value } from 'libcardano'; // Import Value
 import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
@@ -19,6 +21,47 @@ interface ClusterConfig {
 export class HydraTestCluster {
   private clusterConfig: ClusterConfig;
   private participants: HydraTestParticipant[] = [];
+
+  /**
+   * Scans a devnet folder and creates ParticipantConfig for all participants.
+   * Expected folder structure:
+   *   - devnet/
+   *     - credentials/
+   *       - alice-funds.sk, alice-hydra.sk
+   *       - bob-funds.sk, bob-hydra.sk
+   *       - carol-funds.sk, carol-hydra.sk
+   * 
+   * @param devnetPath - Path to the devnet folder (e.g., "/path/to/kuber-hydra/devnet")
+   * @returns Array of ParticipantConfig objects for alice, bob, and carol
+   */
+  public static scanDevnetFolder(devnetPath: string,docker_host="localhost",start_port=8082): ParticipantConfig[] {
+    const credentialsPath = path.join(devnetPath, 'credentials');
+    const participants: ParticipantConfig[] = [];
+    const participantNames = ['alice', 'bob', 'carol'];
+    const baseUrls = [`http://${docker_host}:${start_port}`, `http://${docker_host}:${start_port + 1}`, `http://${docker_host}:${start_port + 2}`];
+
+    for (let i = 0; i < participantNames.length; i++) {
+      const name = participantNames[i];
+      const fundKeyFile = path.join(credentialsPath, `${name}-funds.sk`);
+      const nodeKeyFile = path.join(credentialsPath, `${name}-hydra.sk`);
+
+      // Verify that both key files exist
+      if (!fs.existsSync(fundKeyFile)) {
+        throw new Error(`Fund key file not found: ${fundKeyFile}`);
+      }
+      if (!fs.existsSync(nodeKeyFile)) {
+        throw new Error(`Node key file not found: ${nodeKeyFile}`);
+      }
+
+      participants.push({
+        httpUrl: baseUrls[i],
+        fundKeyFile,
+        nodeKeyFile,
+      });
+    }
+
+    return participants;
+  }
 
   constructor(initialConfig?: ClusterConfig) {
     this.clusterConfig = initialConfig || { participants: [] };

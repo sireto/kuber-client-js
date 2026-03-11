@@ -39,8 +39,8 @@
   "homepage": "https://github.com/sireto/kuber-jsclient#readme",
   "dependencies": {
     "axios": "^1.9.0",
-    "libcardano": "3.0.3",
-    "libcardano-wallet": "3.0.1"
+    "libcardano": "3.0.4",
+    "libcardano-wallet": "3.0.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",

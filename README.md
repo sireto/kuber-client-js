@@ -72,7 +72,7 @@ async function donate(amount) {
             }
         ]
     }).then(tx => {
-        return wallet.submitTx(tx.updatedTxBytes.toString("hex"));
+        return wallet.submitTx(tx.transaction.toBytes().toString("hex"));
     }).catch(e => {
         alert((e && e.message) || e);
     });
@@ -102,15 +102,14 @@ async function main() {
     const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
     const cip30Wallet = new SimpleCip30Wallet(kuber, kuber, shelleyWallet, Network.Testnet);
 
-    const tx = await kuber.buildWithWallet(cip30Wallet,{
+    const signedTx = await kuber.buildAndSignWithWallet(cip30Wallet,{
         outputs: [{
             address: "addr1v9f4au6ux739r5kttd4208qerumrsh6mrenvcvq82e0rpwca3u2u6",
             value: "2A"
         }],
     });
 
-    const signedTx = await cip30Wallet.signTx(tx.cborHex);
-    await cip30Wallet.submitTx(signedTx.updatedTxBytes.toString("hex"));
+    await cip30Wallet.submitTx(signedTx.transaction.toBytes().toString("hex"));
     console.log("Transaction submitted:", signedTx);
 }
 
@@ -133,7 +132,7 @@ const { readFileSync } = require("fs");
 
 async function main() {
 
-    const hydra = new KuberHydraApiProvider("http://localhost:8081",process.env.KUBER_API_KEY);
+    const hydra = new KuberHydraApiProvider("http://localhost:8081");
     const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
         JSON.parse(readFileSync("example.sk", 'utf-8'))
     );
@@ -141,22 +140,21 @@ async function main() {
     const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
     const cip30Wallet = new SimpleCip30Wallet(hydra, hydra, shelleyWallet, 1);
 
-    const head = await hydra.queryHeadState();
-    if (head.state !== "Open") {
-        throw new Error("Head is " + head.state + ". Expected Open");
+    const head = await hydra.queryHead();
+    if (head.tag !== "Open") {
+        throw new Error("Head is " + head.tag + ". Expected Open");
     }
 
     console.log("Hydra Balance", await cip30Wallet.getBalance());
 
-    await hydra.buildWithWallet(cip30Wallet, {
+    const signedTx = await hydra.buildAndSignWithWallet(cip30Wallet, {
         outputs: [{
             address: await cip30Wallet.getChangeAddress(),
             value: "2A"
         }],
         changeAddress: await cip30Wallet.getChangeAddress()
     });
-    const signedTx = await cip30Wallet.signTx(tx.cborHex);
-    await cip30Wallet.submitTx(signedTx.updatedTxBytes.toString("hex"));
+    await cip30Wallet.submitTx(signedTx.transaction.toBytes().toString("hex"));
     console.log("Transaction submitted:", signedTx);
 }
 

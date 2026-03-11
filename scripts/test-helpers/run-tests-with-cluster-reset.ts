@@ -4,51 +4,29 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-interface ParticipantConfig {
-  httpUrl: string;
-  fundKeyFile: string;
-  nodeKeyFile: string;
-}
-
-const participantConfigs: ParticipantConfig[] = [
-  {
-    httpUrl: "http://localhost:8081",
-    fundKeyFile: process.env.HOME + "/.cardano/preview/hydra-0/credentials/funds.sk",
-    nodeKeyFile: process.env.HOME + "/.cardano/preview/hydra-0/credentials/node.sk",
-  },
-  {
-    httpUrl: "http://localhost:8082",
-    fundKeyFile: process.env.HOME + "/.cardano/preview/hydra-1/credentials/funds.sk",
-    nodeKeyFile: process.env.HOME + "/.cardano/preview/hydra-1/credentials/node.sk",
-  },
-];
+const devnetPath = path.join(__dirname, '../../../kuber-hydra/devnet');
+const participantConfigs = HydraTestCluster.scanDevnetFolder(devnetPath,"localhost",8082);
 
 const hydraStates: HydraHeadState[] = ["Initial", "Open", "Closed"];
 const testResultsDir = "test-results";
 
 async function runTestsWithClusterReset() {
-
-
-
   for (const state of hydraStates) {
     const stateResultsDir = path.join(testResultsDir, state);
     if (!fs.existsSync(testResultsDir)) {
-      fs.mkdirSync(testResultsDir);
+      fs.mkdirSync(testResultsDir, { recursive: true });
     }
 
     console.log(`\n--- Resetting cluster to ${state} state and running tests ---`);
 
-    const hydraCluster = new HydraTestCluster();
-    for (const config of participantConfigs) {
-      hydraCluster.addParticipantConfig(config.httpUrl, config.fundKeyFile, config.nodeKeyFile);
-    }
+    const hydraCluster = new HydraTestCluster({ participants: participantConfigs });
 
     try {
       await hydraCluster.resetCluster(state);
       console.log(`Cluster successfully reset to ${state} state.`);
 
       // Command to run vitest, outputting JSON and HTML reports to state-specific files
-      const command = `yarn test`;
+      const command = `HYDRA_TESTS=1 yarn test`;
       console.log(`Executing command: ${command}`);
       execSync(command, { stdio: 'inherit' });
 

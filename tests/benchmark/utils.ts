@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
-import { Ed25519Key } from "libcardano";
+import { CardanoKeyAsync } from "libcardano";
 import { ShelleyWallet, SimpleCip30Wallet } from "libcardano-wallet";
 
 export const RUNS = 10;
@@ -55,7 +55,7 @@ export const writeBenchmarkResults = (
   console.log(`Benchmark results written to ${outputPath}`);
 };
 
-export const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
+export const testWalletSigningKey = await CardanoKeyAsync.fromCardanoCliJson(
   JSON.parse(fs.readFileSync(path.join("src", "tests", "keys", "test-node.sk"), "utf-8")),
 );
 
@@ -63,10 +63,10 @@ export const testWalletAddress = new ShelleyWallet(testWalletSigningKey).address
 
 export async function createHydraWallet(
   service: KuberHydraApiProvider,
-  ed25519Key: Ed25519Key,
+  cardanoKey: CardanoKeyAsync,
   network: 0 | 1,
 ): Promise<SimpleCip30Wallet> {
-  const shelleyWallet = new ShelleyWallet(ed25519Key);
+  const shelleyWallet = new ShelleyWallet(cardanoKey);
   const hydraWallet = new SimpleCip30Wallet(service, service, shelleyWallet, network);
   return hydraWallet;
 }

@@ -1,4 +1,4 @@
-const { Ed25519Key } = require("libcardano");
+const { CardanoKeyAsync } = require("libcardano");
 const { ShelleyWallet,SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 const { KuberHydraApiProvider } = require("kuber-client");
@@ -7,7 +7,7 @@ const { KuberHydraApiProvider } = require("kuber-client");
 
 async function main(){  
   const hydra = new KuberHydraApiProvider("http://localhost:8081")
-  const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
+  const testWalletSigningKey = await CardanoKeyAsync.fromCardanoCliJson(
     JSON.parse(readFileSync("example.sk",'utf-8'))
   );
 

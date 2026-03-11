@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Ed25519Key } from 'libcardano';
+import { CardanoKeyAsync } from 'libcardano';
 import { ShelleyWallet, SimpleCip30Wallet } from 'libcardano-wallet';
 import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
 import { Value } from 'libcardano';
@@ -9,8 +9,8 @@ export class HydraTestParticipant {
   private httpUrl: string;
   private fundKeyFile: string;
   private nodeKeyFile: string;
-  private fundKey: Ed25519Key | null = null;
-  private nodeKey: Ed25519Key | null = null;
+  private fundKey: CardanoKeyAsync | null = null;
+  private nodeKey: CardanoKeyAsync | null = null;
   private kuberHydraApiProvider: KuberHydraApiProvider;
   private cip30Wallet: SimpleCip30Wallet | null = null;
   private walletAddress: string = '';
@@ -25,15 +25,15 @@ export class HydraTestParticipant {
   private async loadKeys(): Promise<void> {
     if (!this.fundKey) {
       const fundKeyContent = fs.readFileSync(this.fundKeyFile, 'utf-8');
-      this.fundKey = await Ed25519Key.fromCardanoCliJson(JSON.parse(fundKeyContent));
+      this.fundKey = await CardanoKeyAsync.fromCardanoCliJson(JSON.parse(fundKeyContent));
     }
     if (!this.nodeKey) {
       const nodeKeyContent = fs.readFileSync(this.nodeKeyFile, 'utf-8');
-      this.nodeKey = await Ed25519Key.fromCardanoCliJson(JSON.parse(nodeKeyContent));
+      this.nodeKey = await CardanoKeyAsync.fromCardanoCliJson(JSON.parse(nodeKeyContent));
     }
   }
 
-  public async getFundKey(): Promise<Ed25519Key> {
+  public async getFundKey(): Promise<CardanoKeyAsync> {
     await this.loadKeys();
     if (!this.fundKey) {
       throw new Error('Fund key not loaded.');
@@ -41,7 +41,7 @@ export class HydraTestParticipant {
     return this.fundKey;
   }
 
-  public async getNodeKey(): Promise<Ed25519Key> {
+  public async getNodeKey(): Promise<CardanoKeyAsync> {
     await this.loadKeys();
     if (!this.nodeKey) {
       throw new Error('Node key not loaded.');

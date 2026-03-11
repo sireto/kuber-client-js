@@ -4,17 +4,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { HydraTestParticipant } from './HydraTestParticipant';
 import { Value } from 'libcardano'; // Import Value
-import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
-import { HydraHeadState } from '../src/utils/hydraTypes';
+import { KuberHydraApiProvider } from '../service/KuberHydraApiProvider';
+import { HydraHeadState } from '../utils/hydraTypes';
 import type { TxSignResult } from 'libcardano-wallet';
 
-interface ParticipantConfig {
+export interface ParticipantConfig {
   httpUrl: string;
   fundKeyFile: string;
   nodeKeyFile: string;
 }
 
-interface ClusterConfig {
+export interface ClusterConfig {
   participants: ParticipantConfig[];
 }
 

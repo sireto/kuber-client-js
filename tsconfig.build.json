@@ -5,7 +5,7 @@
     "module" : "commonjs",
     "preserveConstEnums": true,
     "moduleResolution": "node",
-    "declaration": true,
+    "declaration": false,
     "strict": false,
     "sourceMap": true,
     "inlineSources": true,
@@ -16,5 +16,5 @@
     "baseUrl": ".",
   },
   "include": ["dist/**/*"],
-  "exclude": ["node_modules", "__tests__/**/*", "tests/**/*","src/**"]
+  "exclude": ["node_modules", "tests/**/*"]
 }

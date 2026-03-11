@@ -8,9 +8,10 @@ import { CommonProtocolParameters } from "libcardano-wallet/utils/types";
 import { UTxO } from "libcardano/serialization";
 import { randomBytes } from "crypto";
 import { describe, beforeAll, expect, test } from "vitest";
-import { HydraTestCluster } from "./HydraTestCluster";
+import { HydraTestCluster } from "../src/cluster/HydraTestCluster";
 
-const shouldRunHydraTests = process.env.HYDRA_TESTS === "1";
+const run_test=process.env.HYDRA_TESTS?.toLocaleLowerCase() 
+const shouldRunHydraTests = run_test == "true" || run_test == "1" || run_test == "yes" || run_test == "y";
 
 if (!shouldRunHydraTests) {
   describe.skip("KuberHydraApiProvider Operations", () => {});

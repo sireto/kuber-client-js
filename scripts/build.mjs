@@ -2,7 +2,7 @@ import fs from 'fs'
 import process from 'process';
 import * as child from 'child_process'
 console.log('> Copying src to dist')
-child.execSync('rm -rf dist   && cp -R src dist')
+child.execSync('rm -rf dist && cp -R src dist')
 
 console.log('> tsc')
 const minify=false
@@ -45,7 +45,16 @@ function postBuild(){
     delete packageJson.prepublish
     delete packageJson.scripts
     delete packageJson.packageManager
-    packageJson.main="index.js"
+    packageJson.main = "./index.js"
+    packageJson.browser = "./index.browser.js"
+    packageJson.exports = {
+        ".": {
+            "browser": "./index.browser.js",
+            "node": "./index.js",
+            "default": "./index.js"
+        },
+        "./browser": "./index.browser.js"
+    }
     // show only typescript as dev dependency
     if(packageJson.devDependencies && packageJson.devDependencies.typescript ){
         packageJson.devDependencies={typescript:packageJson.devDependencies.typescript}

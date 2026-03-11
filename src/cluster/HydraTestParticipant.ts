@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CardanoKeyAsync } from 'libcardano';
 import { ShelleyWallet, SimpleCip30Wallet } from 'libcardano-wallet';
-import { KuberHydraApiProvider } from '../src/service/KuberHydraApiProvider';
+import { KuberHydraApiProvider } from '../service/KuberHydraApiProvider';
 import { Value } from 'libcardano';
 
 export class HydraTestParticipant {

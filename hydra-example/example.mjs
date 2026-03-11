@@ -1,10 +1,9 @@
 import { loadCrypto, Ed25519Key } from "libcardano";
-import { ShelleyWallet,Cip30ShelleyWallet } from "libcardano-wallet";
+import { ShelleyWallet,SimpleCip30Wallet } from "libcardano-wallet";
 import { readFileSync } from "fs";
 import { KuberHydraApiProvider } from "kuber-client";
 
 async function main(){
-  await loadCrypto();
 
   const hydra = new KuberHydraApiProvider("http://localhost:8081")
   const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
@@ -12,7 +11,7 @@ async function main(){
   );
 
   const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
-  const cip30Wallet = new Cip30ShelleyWallet(hydra,hydra,shelleyWallet,1)
+  const cip30Wallet = new SimpleCip30Wallet(hydra,hydra,shelleyWallet,1)
 
   const head = await hydra.queryHeadState()
   if(head.state != "Open"){

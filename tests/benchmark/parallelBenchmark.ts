@@ -8,14 +8,14 @@ import {
   writeBenchmarkResults,
 } from "./utils";
 import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
-import { Cip30ShelleyWallet, ShelleyWallet } from "libcardano-wallet";
+import { SimpleCip30Wallet, ShelleyWallet } from "libcardano-wallet";
 import type { TxSignResult } from "libcardano-wallet";
 
 const runParallelSubmitBenchmarks = async () => {
   const kuberHydra = new KuberHydraApiProvider("http://172.31.6.1:8082");
   const hydraFundKeys = testWalletSigningKey;
   const shelleyWallet = new ShelleyWallet(hydraFundKeys, undefined);
-  const cip30Wallet = new Cip30ShelleyWallet(kuberHydra, kuberHydra, shelleyWallet, 1);
+  const cip30Wallet = new SimpleCip30Wallet(kuberHydra, kuberHydra, shelleyWallet, 1);
 
   const prepResults: Record<string, number>[] = [];
   const submitLog: Record<string, number> = {};

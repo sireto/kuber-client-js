@@ -89,20 +89,18 @@ This example shows how to use `kuber-client` in a Node.js environment to build a
 ```js
 const { KuberApiProvider } = require("kuber-client");
 const { loadCrypto, Ed25519Key } = require("libcardano");
-const { ShelleyWallet, Cip30ShelleyWallet } = require("libcardano-wallet");
+const { ShelleyWallet, SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 const { Network } = require("libcardano-wallet/cip30/types");
 
 async function main() {
-    await loadCrypto();
-
     const kuber = new KuberApiProvider('http://localhost:8081',process.env.KUBER_API_KEY);
     const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
         JSON.parse(readFileSync("payment.skey", 'utf-8'))
     );
 
     const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
-    const cip30Wallet = new Cip30ShelleyWallet(kuber, kuber, shelleyWallet, Network.Testnet);
+    const cip30Wallet = new SimpleCip30Wallet(kuber, kuber, shelleyWallet, Network.Testnet);
 
     const tx = await kuber.buildWithWallet(cip30Wallet,{
         outputs: [{
@@ -130,11 +128,10 @@ This example demonstrates how to use `kuber-client` to interact with a Hydra hea
 ```js
 const { KuberHydraApiProvider } = require("kuber-client");
 const { loadCrypto, Ed25519Key } = require("libcardano");
-const { ShelleyWallet, Cip30ShelleyWallet } = require("libcardano-wallet");
+const { ShelleyWallet, SimpleCip30Wallet } = require("libcardano-wallet");
 const { readFileSync } = require("fs");
 
 async function main() {
-    await loadCrypto();
 
     const hydra = new KuberHydraApiProvider("http://localhost:8081",process.env.KUBER_API_KEY);
     const testWalletSigningKey = await Ed25519Key.fromCardanoCliJson(
@@ -142,7 +139,7 @@ async function main() {
     );
 
     const shelleyWallet = new ShelleyWallet(testWalletSigningKey);
-    const cip30Wallet = new Cip30ShelleyWallet(hydra, hydra, shelleyWallet, 1);
+    const cip30Wallet = new SimpleCip30Wallet(hydra, hydra, shelleyWallet, 1);
 
     const head = await hydra.queryHeadState();
     if (head.state !== "Open") {

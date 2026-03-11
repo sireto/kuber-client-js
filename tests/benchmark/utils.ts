@@ -1,10 +1,8 @@
 import path from "path";
 import fs from "fs";
 import { KuberHydraApiProvider } from "../../src/service/KuberHydraApiProvider";
-import { Ed25519Key, loadCrypto } from "libcardano";
-import { ShelleyWallet, Cip30ShelleyWallet } from "libcardano-wallet";
-
-await loadCrypto();
+import { Ed25519Key } from "libcardano";
+import { ShelleyWallet, SimpleCip30Wallet } from "libcardano-wallet";
 
 export const RUNS = 10;
 
@@ -67,9 +65,9 @@ export async function createHydraWallet(
   service: KuberHydraApiProvider,
   ed25519Key: Ed25519Key,
   network: 0 | 1,
-): Promise<Cip30ShelleyWallet> {
+): Promise<SimpleCip30Wallet> {
   const shelleyWallet = new ShelleyWallet(ed25519Key);
-  const hydraWallet = new Cip30ShelleyWallet(service, service, shelleyWallet, network);
+  const hydraWallet = new SimpleCip30Wallet(service, service, shelleyWallet, network);
   return hydraWallet;
 }
 

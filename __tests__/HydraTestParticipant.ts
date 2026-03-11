@@ -34,7 +34,6 @@ export class HydraTestParticipant {
   }
 
   public async getFundKey(): Promise<Ed25519Key> {
-    await loadCrypto();
     await this.loadKeys();
     if (!this.fundKey) {
       throw new Error('Fund key not loaded.');
@@ -43,7 +42,6 @@ export class HydraTestParticipant {
   }
 
   public async getNodeKey(): Promise<Ed25519Key> {
-    await loadCrypto();
     await this.loadKeys();
     if (!this.nodeKey) {
       throw new Error('Node key not loaded.');
@@ -57,7 +55,6 @@ export class HydraTestParticipant {
 
   public async getCip30Wallet(): Promise<SimpleCip30Wallet> {
     if (!this.cip30Wallet) {
-      await loadCrypto();
       const shelleyWallet = new ShelleyWallet(await this.getFundKey());
       this.cip30Wallet = new SimpleCip30Wallet(this.kuberHydraApiProvider, this.kuberHydraApiProvider, shelleyWallet, 0);
       this.walletAddress = (await this.cip30Wallet.getChangeAddress()).toBech32();

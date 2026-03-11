@@ -8,7 +8,7 @@ import { UTxO } from "libcardano/serialization";
 import { randomBytes } from "crypto";
 import { describe, beforeAll, expect, test } from "vitest";
 import { HydraTestCluster } from "./HydraTestCluster";
-import { APIError, L1TxSubmitError } from "src/utils/errorHandler";
+import { APIError } from "src/utils/errorHandler";
 
 const shouldRunHydraTests = process.env.HYDRA_TESTS === "1";
 
@@ -171,11 +171,8 @@ if (!shouldRunHydraTests) {
       ],
       changeAddress: walletAddress,
     };
-
-    const builtTx = await hydra.buildAndSignWithWallet(cip30Wallet, transaction);
-    expect(builtTx).to.exist;
-    await hydra.submitTx(builtTx.transaction.toBytes().toString("hex"));
-    const utxo = await hydra.queryUTxOByTxIn(builtTx.transaction.hash().toString("hex") + "#0");
+    const submitResult=await hydra.buildAndSubmitWithWallet(cip30Wallet, transaction);
+    const utxo = await hydra.queryUTxOByTxIn(submitResult.transaction.hash().toString("hex") + "#0");
     console.log("utxo : ",utxo)
     expect(utxo.length).toBeGreaterThan(0)
   

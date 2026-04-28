@@ -53,7 +53,8 @@ function postBuild(){
             "node": "./index.js",
             "default": "./index.js"
         },
-        "./browser": "./index.browser.js"
+        "./browser": "./index.browser.js",
+        "./utils": "./utils/index.js"
     }
     // show only typescript as dev dependency
     if(packageJson.devDependencies && packageJson.devDependencies.typescript ){

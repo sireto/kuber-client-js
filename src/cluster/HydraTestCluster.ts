@@ -30,7 +30,7 @@ export class HydraTestCluster {
    *       - alice-funds.sk, alice-hydra.sk
    *       - bob-funds.sk, bob-hydra.sk
    *       - carol-funds.sk, carol-hydra.sk
-   * 
+   * @see {@link https://dquadrant.github.io/kuber/hydra_docusaurus/docs/hydra-js-client/local-devnet | Local devnet setup}
    * @param devnetPath - Path to the devnet folder (e.g., "/path/to/kuber-hydra/devnet")
    * @returns Array of ParticipantConfig objects for alice, bob, and carol
    */
@@ -191,30 +191,42 @@ export class HydraTestCluster {
 
 
   public async resetClusterToInitialState(): Promise<void> {
-  const participant = this.participants[0];
-  const hydra = participant.getKuberHydraApiProvider();
-  let head = await hydra.queryHead();
-  const participantUrl = participant.getKuberHydraUrl();
+    const participant = this.participants[0];
+    const hydra = participant.getKuberHydraApiProvider();
+    const participantUrl = participant.getKuberHydraUrl();
 
-  if (head.tag === "Initial") {
-    console.log(`Head is already in Initial state for ${participantUrl}`);
-    return;
-  }
-  console.log(`[Cluster Reset] from: ${head.tag} to: Initial`)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const head = await hydra.queryHead();
 
+      if (head.tag === "Initial") {
+        console.log(`Head is already in Initial state for ${participantUrl}`);
+        return;
+      }
+      console.log(`[Cluster Reset] from: ${head.tag} to: Initial`);
 
-    if (head.tag === "Idle") {
-      await this.transitionIdleToInitial(hydra);
-    } else if (head.tag === "Open") {
-      await this.transitionOpenToClose(hydra);
-      await this.transitionClosedToFanoutReady(hydra);
-      await this.transitionFanoutToInitial(hydra);
-    } else if (head.tag === "Closed") {
-      await this.transitionClosedToFanoutReady(hydra);
-      await this.transitionFanoutToInitial(hydra);
-    } else {
-      throw Error(`Could not transition to Initial state for ${participantUrl}. Current state: ${head.tag}`);
+      try {
+        if (head.tag === "Idle") {
+          await this.transitionIdleToInitial(hydra);
+        } else if (head.tag === "Open") {
+          await this.transitionOpenToClose(hydra);
+          await this.transitionClosedToFanoutReady(hydra);
+          await this.transitionFanoutToInitial(hydra);
+        } else if (head.tag === "Closed") {
+          if (!head.contents.readyToFanoutSent) {
+            await this.transitionClosedToFanoutReady(hydra);
+          }
+          await this.transitionFanoutToInitial(hydra);
+        } else {
+          throw Error(`Could not transition to Initial state for ${participantUrl}. Current state: ${head.tag}`);
+        }
+      } catch (error) {
+        if (attempt === 2) {
+          throw error;
+        }
+      }
     }
+
+    throw Error(`Could not transition to Initial state for ${participantUrl}. Retried 3 times without success.`);
   }
 
   public async resetClusterToOpenState(): Promise<void> {

@@ -12,6 +12,8 @@ import { HydraTestCluster } from "../src/cluster/HydraTestCluster";
 
 const run_test=process.env.HYDRA_TESTS?.toLocaleLowerCase() 
 const shouldRunHydraTests = run_test == "true" || run_test == "1" || run_test == "yes" || run_test == "y";
+const dockerHost = process.env.docker_host ?? process.env.DOCKER_HOST ?? "localhost";
+const hydraPort = Number(process.env.HYDRA_PORT ?? process.env.hydra_port ?? 8082);
 
 if (!shouldRunHydraTests) {
   describe.skip("KuberHydraApiProvider Operations", () => {});
@@ -19,7 +21,7 @@ if (!shouldRunHydraTests) {
   describe("KuberHydraApiProvider Operations", async () => {
     // Scan devnet folder to configure all 3 participants (alice, bob, carol)
     const devnetPath = path.join(__dirname, '../../kuber-hydra/devnet');
-    const participantConfigs = HydraTestCluster.scanDevnetFolder(devnetPath,"localhost",8082);
+    const participantConfigs = HydraTestCluster.scanDevnetFolder(devnetPath, dockerHost, hydraPort);
     const credentialsPath = path.join(devnetPath, 'credentials');
     const hydraCluster = new HydraTestCluster({ participants: participantConfigs });
     const participant1 = hydraCluster.getParticipant(0)!;

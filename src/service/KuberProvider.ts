@@ -1,6 +1,6 @@
 import { QueryAPIProvider, SubmitAPIProvider } from "libcardano-wallet";
 import { CommonProtocolParameters, CommonTxObject } from "libcardano-wallet/utils/types";
-import { Output, HexString, TxWitnessSet, TxInput, UTxO } from "libcardano/serialization";
+import { Output, HexString, TxWitnessSet, TxInput, UTxO, ShelleyAddress } from "libcardano/serialization";
 import { Cip30, Cip30Interface, Cip30ProviderWrapper, TxSignResult } from "libcardano-wallet";
 import { cborBackend } from "cbor-rpc";
 
@@ -84,7 +84,8 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
       buildRequest.selections = concat(buildRequest.selections, selectedUtxos);
     }
     if (!buildRequest.changeAddress) {
-      buildRequest.changeAddress = await cip30.getChangeAddress();
+      // CIP-30 returns the address as hex; the Kuber API takes bech32.
+      buildRequest.changeAddress = ShelleyAddress.fromAny(await cip30.getChangeAddress()).toBech32();
     }
 
     if (!buildRequest.inputs && !buildRequest.selections) {
@@ -190,7 +191,8 @@ export abstract class KuberProvider implements SubmitAPIProvider, QueryAPIProvid
           console.log(`Polling for confirmation of tx: ${txHash}. Result length: ${result.length}`);
         }
 
-        if (Array.isArray(result) && result.length > 1) {
+        // The first output exists once the transaction is in the ledger.
+        if (Array.isArray(result) && result.length > 0) {
           return Date.now() - start; // Transaction confirmed
         }
       } catch (err: any) {

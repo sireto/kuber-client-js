@@ -1,6 +1,6 @@
 {
   "name": "kuber-client",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Javascript client library for kuber server",
   "main": "src/index.ts",
   "prepublish": "tsc && cp package.json Readme.md ./dist && ",
@@ -39,8 +39,8 @@
   "homepage": "https://github.com/sireto/kuber-jsclient#readme",
   "dependencies": {
     "axios": "^1.9.0",
-    "libcardano": "3.0.4",
-    "libcardano-wallet": "3.0.2"
+    "libcardano": "^3.0.6",
+    "libcardano-wallet": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",

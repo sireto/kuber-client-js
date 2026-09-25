@@ -1219,17 +1219,17 @@ js-tokens@^9.0.1:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-9.0.1.tgz#2ec43964658435296f6761b34e10671c2d9527f4"
   integrity sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==
 
-libcardano-wallet@3.0.2:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-3.0.2.tgz#a948300c13907aba0e7ed8dea071e87503f6622d"
-  integrity sha512-VXFPTXYhLSblrFZHVsz+TU0guydp2SyIwbzjRj4bc/pOsqSD9E2/wGdi2GJ9atEMOUZCCuYArUvy/nKZfCSSWQ==
+libcardano-wallet@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/libcardano-wallet/-/libcardano-wallet-3.0.3.tgz#c2afa7028aa292ef225e3ea9cd7ef387091a4e81"
+  integrity sha512-Yum282pgqcbSe9YHidM8LQH2APO7EkNJZBNxfPPk1wAosJM/0NlPzPO8wM24/AWdW/NVQMv4KWhLroJfJ74j3Q==
   dependencies:
-    libcardano "3.0.4"
+    libcardano "^3.0.6"
 
-libcardano@3.0.4:
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/libcardano/-/libcardano-3.0.4.tgz#46d37cdedbf538e4d1923e115824fe4e3b8c091d"
-  integrity sha512-KLJeaNyVzplxRqH/JOdOBWx5DtmPKiAM8mHEg97NKwbYcW1X1l3FkJ4JnBRzdyR8NLJUVgYFf8Ji1V/X0bOAbA==
+libcardano@^3.0.6:
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/libcardano/-/libcardano-3.0.6.tgz#989f1214df42cf2c91f2f7c3458d8d277b801caf"
+  integrity sha512-whgP1rcz0cqKVC9t5AcRzQsQzkyJp198yrQGihqt9NFDdBRrAshbRnGMtOOnvBEglzoh6e21FgzMPVYG81w3MQ==
   dependencies:
     "@noble/curves" "^2.0.1"
     bech32 "^2.0.0"
